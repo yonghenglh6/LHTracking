@@ -285,16 +285,16 @@ public:
 //        feature_weight_ = 1.0;
 //        type_weight_ = 1.0;
 
-        distance_threshold_ = 2.5;
+        distance_threshold_ = 2.0;
 
         iou_weight_ = 1.0;
-        frame_weight_ = 1.0;
+        frame_weight_ = 1.5;
         pos_weight_ = 1.0;
-        scale_weight_ = 1.0;
+        scale_weight_ = 0.5;
         feature_weight_ = 1.0;
         type_weight_ = 1.0;
 
-        kMaxFrameIntervalKeep = 10;
+        kMaxFrameIntervalKeep = 15;
         kBoardToDrop = 10;
     }
 
@@ -330,15 +330,21 @@ public:
 //        for (int i = 0; i < distance_vec.size(); i++) {
 //            std::cout << distance_vec[i].distance[0] << std::endl;
 //        }
+
         //Matched
         for (int index = 0; index < distance_vec.size(); index++) {
             DistanceUnit &distanceUnit = distance_vec[index];
 
             vector<float> &match_distance = distanceUnit.distance;
             if (!trackobject_matched[distanceUnit.i] && !detectobject_matched[distanceUnit.j]) {
-                if (match_distance[0] < distance_threshold_) {
-                    TrackObject *trackObject = trackobject_set[distanceUnit.i];
-                    DetectObject *detectObject = detectobject_set[distanceUnit.j];
+
+                TrackObject *trackObject = trackobject_set[distanceUnit.i];
+                DetectObject *detectObject = detectobject_set[distanceUnit.j];
+
+                float distance_threshold = distance_threshold_;
+                if (trackObject->state_track == TRACKSTATE_INITIAL)
+                    distance_threshold = distance_threshold_ * 1.3;
+                if (match_distance[0] < distance_threshold) {
                     trackobject_matched[distanceUnit.i] = true;
                     detectobject_matched[distanceUnit.j] = true;
                     track_system_->match(trackObject, detectObject, match_distance);
@@ -409,10 +415,10 @@ private:
         float scale_weight = scale_weight_;
         float feature_weight = feature_weight_;
         float type_weight = type_weight_;
-        if (track_object->state_track == TRACKSTATE_INITIAL) {
-            pos_weight /= 2;
-            iou_weight /= 2;
-        }
+//        if (track_object->state_track == TRACKSTATE_INITIAL) {
+//            pos_weight *= 0.8;
+//            iou_weight *= 0.4;
+//        }
 
         float iou_distance = 1.0f - iou(vt_location, dt_location);
         float frame_distance = frame_interval <= kMaxFrameIntervalKeep ? (frame_interval - 1) * 0.15f : 10;
@@ -455,6 +461,7 @@ struct ObjResult {
     float score;
     SpeedLevel sl;
     Direction dir;
+    vector<float> match_distance;
 };
 struct FrameResult {
     unsigned long frm_id;
@@ -540,6 +547,9 @@ public:
                                 objResult.sl = SLOW_SPEED;
                             objResult.dir.left_right_dir = matchPacket->direction.x;
                             objResult.dir.up_down_dir = matchPacket->direction.y;
+                            if (frame_index == frm_id) {
+                                objResult.match_distance = trackObject->getLastMatchPacket()->match_distance;
+                            }
                             frameResult.obj.push_back(objResult);
                         }
                     } else if (match_list_size == 1 && frame_index == frm_id) {

@@ -46,7 +46,7 @@ int main(int argn, char **arg) {
         << "Can not create the image folder.";
     }
     ofstream track_output(track_output_file.c_str());
-    int fps = 4;
+    int fps = 2;
     int skip_frames = 0;
     skip_frames = int(skip_frames / fps) * fps + 1;
     LOG(INFO) << "SKIP FRAME: " << skip_frames;
@@ -106,11 +106,20 @@ int main(int argn, char **arg) {
                                   Scalar(LabelColors[color_idx][2],
                                          LabelColors[color_idx][1],
                                          LabelColors[color_idx][0]), 3, 8, 0);
-                        sprintf(tmp_char, "%lu type-%u score-%.0f sl-%d dir-%d-%d",
-                                result[i].obj[j].obj_id, result[i].obj[j].type,
-                                result[i].obj[j].score, result[i].obj[j].sl,
-                                result[i].obj[j].dir.up_down_dir,
-                                result[i].obj[j].dir.left_right_dir);
+//                        sprintf(tmp_char, "%lu type-%u score-%.0f sl-%d dir-%d-%d",
+//                                result[i].obj[j].obj_id, result[i].obj[j].type,
+//                                result[i].obj[j].score, result[i].obj[j].sl,
+//                                result[i].obj[j].dir.up_down_dir,
+//                                result[i].obj[j].dir.left_right_dir);
+                        vector<float> &match_distance = result[i].obj[j].match_distance;
+                        if (match_distance.size() > 4) {
+                            sprintf(tmp_char, "%lu [%.1f] %.1f %.1f %.1f %.1f",
+                                    result[i].obj[j].obj_id, match_distance[0],
+                                    match_distance[1], match_distance[2], match_distance[3], match_distance[4]);
+                        } else {
+                            sprintf(tmp_char, "%lu [initial]",
+                                    result[i].obj[j].obj_id);
+                        }
                         cv::putText(all_imgs[0], tmp_char,
                                     cv::Point(result[i].obj[j].loc.x,
                                               result[i].obj[j].loc.y - 12),
