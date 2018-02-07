@@ -25,7 +25,7 @@ const unsigned char LabelColors[][3] = {{251, 144, 17},
 
 int main(int argn, char **arg) {
 
-    string dataset_id("n1");
+    string dataset_id("n6");
     string base_dir("/home/liuhao/workspace/1_dgvehicle/LHTracking/");
     string dataset_name = dataset_id;
     string imagelist_file = base_dir + "data/" + dataset_name + ".list";
@@ -39,7 +39,7 @@ int main(int argn, char **arg) {
     }
     ofstream track_output(track_output_file.c_str());
     int fps = 15;
-    int skip_frames = 0;
+    int skip_frames = 180;
     skip_frames = int(skip_frames / fps) * fps + 1;
     LOG(INFO) << "SKIP FRAME: " << skip_frames;
     dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);

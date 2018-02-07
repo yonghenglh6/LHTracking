@@ -270,23 +270,23 @@ public:
         picture_width_ = 640;
         picture_height_ = 480;
 
-        distance_threshold_ = 5.53;
-
-        iou_weight_ = 4.84444;
-        frame_weight_ = 2.0;
-        pos_weight_ = 7.487;
-        scale_weight_ = 3.00;
-        feature_weight_ = 1.0;
-        type_weight_ = 1.0;
-
-//        distance_threshold_ = 1.5;
+//        distance_threshold_ = 6.53;
 //
-//        iou_weight_ = 1.0;
-//        frame_weight_ = 1.0;
-//        pos_weight_ = 1.0;
-//        scale_weight_ = 0.5;
+//        iou_weight_ = 4.84444;
+//        frame_weight_ = 2.0;
+//        pos_weight_ = 7.487;
+//        scale_weight_ = 3.00;
 //        feature_weight_ = 1.0;
 //        type_weight_ = 1.0;
+
+        distance_threshold_ = 5.0;
+
+        iou_weight_ = 5.15;
+        frame_weight_ = 2.0;
+        pos_weight_ = 3.295;
+        scale_weight_ = 1.635;
+        feature_weight_ = 1.0;
+        type_weight_ = 1.0;
 
         kMaxFrameIntervalKeep = 100;
         kBoardToDrop = 10;
@@ -326,9 +326,13 @@ public:
 
             vector<float> &match_distance = distanceUnit.distance;
             if (!trackobject_matched[distanceUnit.i] && !detectobject_matched[distanceUnit.j]) {
-                if (match_distance[0] < distance_threshold_) {
-                    TrackObject *trackObject = trackobject_set[distanceUnit.i];
-                    DetectObject *detectObject = detectobject_set[distanceUnit.j];
+                TrackObject *trackObject = trackobject_set[distanceUnit.i];
+                DetectObject *detectObject = detectobject_set[distanceUnit.j];
+                float distance_threshold = distance_threshold_;
+                if (trackObject->state_track == TRACKSTATE_INITIAL)
+                    distance_threshold = distance_threshold_ * 2.0;
+                if (match_distance[0] < distance_threshold) {
+
                     trackobject_matched[distanceUnit.i] = true;
                     detectobject_matched[distanceUnit.j] = true;
                     track_system_->match(trackObject, detectObject, match_distance);
@@ -392,10 +396,10 @@ private:
         float scale_weight = scale_weight_;
         float feature_weight = feature_weight_;
         float type_weight = type_weight_;
-        if (track_object->state_track == TRACKSTATE_INITIAL) {
-            pos_weight /= 2;
-            iou_weight /= 2;
-        }
+//        if (track_object->state_track == TRACKSTATE_INITIAL) {
+//            pos_weight /= 2;
+//            iou_weight /= 2;
+//        }
 
         float iou_distance = 1.0f - iou(vt_location, dt_location);
         float frame_distance = frame_interval <= kMaxFrameIntervalKeep ? (frame_interval - 1) * 0.015f : 10;

@@ -97,6 +97,7 @@ namespace dataloader {
 
             if (index_frame >= tot_frm_num)
                 return -2;
+//            LOG(INFO)<<imagenames[index_frame]<<std::endl;
             mat = cv::imread(imagenames[index_frame]);
             if (mat.cols <= 0)
                 return -1;
