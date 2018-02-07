@@ -58,7 +58,6 @@ public:
     vector<float> feature;
     float det_score;
     Rect location;
-    int data[10000000];
 };
 
 enum StateTrack {
