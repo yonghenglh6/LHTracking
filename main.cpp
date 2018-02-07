@@ -18,9 +18,17 @@ using namespace cv;
 
 const unsigned char LabelColors[][3] = {{251, 144, 17},
                                         {2,   224, 17},
-                                        {
-                                         247, 13,  145},
-                                        {206, 36,  255},
+                                        {247, 13,  145},
+                                        {206, 36,  35},
+                                        {54,  136, 196},
+                                        {126, 87,  212},
+                                        {34,  126, 73},
+                                        {87,  45,  65},
+                                        {123, 121, 148},
+                                        {63,  21,  34},
+                                        {87,  236, 121},
+                                        {123, 174, 81},
+                                        {139, 56,  71},
                                         {0,   78,  255}};
 
 int main(int argn, char **arg) {
@@ -56,7 +64,7 @@ int main(int argn, char **arg) {
 
 
     while (!stop) {
-        frame_index = data_reader->readNextImage(frame);
+        frame_index = data_reader->readNextImage(frame, fps);
         if (frame_index == -1) {
             LOG(FATAL) << "Error: can not read frames.\n";
         } else if (frame_index == -2) {
@@ -81,19 +89,11 @@ int main(int argn, char **arg) {
                 pos.push_back(det_vec[i].position);
                 type.push_back(det_vec[i].typeID);
             }
-            unsigned long long tt, tt2;
-            struct timeval start;
-            gettimeofday(&start, NULL);
-            tt = (start.tv_sec) * 1000000 + start.tv_usec;
-//            sleep(1);
+
             tracker->Update(frame, frame_index, true, pos, type, result, kill_id);
 
-            struct timeval end;
-            gettimeofday(&end, NULL);
-            tt2 = (end.tv_sec) * 1000000 + end.tv_usec;
-            LOG(INFO) << "time:" << float((tt2 - tt) / 1000.f);
-
-            LOG(INFO) << "FrameIndex: " << frame_index << " , Detect Size: " << det_vec.size() << " , Track Size: "
+            LOG(INFO) << "FrameIndex: " << frame_index << " , Detect Size: " << det_vec.size() << " , Result Size: "
+                      << result.size() << " , Track Size: "
                       << (result.size() > 0 ? result[0].obj.size() : 0) << endl;
         }
         if (display) {
@@ -101,7 +101,7 @@ int main(int argn, char **arg) {
                 if (((result[i].frm_id - 1) % fps == 0)) {
                     char tmp_char[512];
                     for (int j = 0; j < result[i].obj.size(); j++) {
-                        int color_idx = result[i].obj[j].obj_id % 5;
+                        int color_idx = result[i].obj[j].obj_id % 13;
                         rectangle(all_imgs[0], result[i].obj[j].loc,
                                   Scalar(LabelColors[color_idx][2],
                                          LabelColors[color_idx][1],
@@ -123,18 +123,20 @@ int main(int argn, char **arg) {
  << result[i].obj[j].loc.x << " " << result[i].obj[j].loc.y << " " << result[i].obj[j].loc.width << \
                             " " << result[i].obj[j].loc.height << "\n";
                     }
+//                cout << "result[i].frm_id: " << result[i].frm_id;
                     sprintf(tmp_char, (track_image_output_directory + "/%lu.jpg").c_str(),
                             result[i].frm_id);
                     imshow("Tracking Debug", all_imgs[0]);
-                    if ((result[i].frm_id - 1) % fps == 0)
-                        imwrite(tmp_char, all_imgs[0]);
+//                if ((result[i].frm_id - 1) % fps == 0)
+                    imwrite(tmp_char, all_imgs[0]);
 
                     int c = waitKey(1);
                     if ((char) c == 27) {
                         stop = true;
                     }
                 }
-                all_imgs.pop_front();
+                if (((result[i].frm_id - 1) % fps == 0))
+                    all_imgs.pop_front();
             }
         }
 

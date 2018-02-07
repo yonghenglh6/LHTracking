@@ -6,13 +6,14 @@
 #define LHTRACKING_LH_TRACKING_H
 
 #include <sys/time.h>
-#include <stdio.h>
+#include <cstdio>
 #include <opencv2/opencv.hpp>
 #include <fstream>
 #include <algorithm>
 #include <deque>
 #include <map>
 #include <set>
+#include "util/timing_profiler.h"
 
 using cv::Mat;
 using cv::Rect;
@@ -26,6 +27,10 @@ using std::endl;
 // -------------------------------------- Binary Matching -----------------------------------------------------
 #define MAX_MATCHING_NUM 101
 #define INF 999999999
+
+timing_profiler timingProfiler;
+timing_profiler timingProfiler_temp;
+string timingProfiler_str;
 
 class BinaryMatching {
 public:
@@ -58,7 +63,6 @@ public:
     vector<float> feature;
     float det_score;
     Rect location;
-    int data[10000000];
 };
 
 enum StateTrack {
@@ -108,6 +112,7 @@ public:
     }
 
     ~TrackObject() {
+
 //        LOG(WARNING)<<"HELKKIU"<<endl;
         for (int i = 0; i < match_list.size(); i++) {
             delete match_list[i];
@@ -271,25 +276,25 @@ public:
         picture_width_ = 640;
         picture_height_ = 480;
 
-        distance_threshold_ = 5.53;
-
-        iou_weight_ = 4.84444;
-        frame_weight_ = 2.0;
-        pos_weight_ = 7.487;
-        scale_weight_ = 3.00;
-        feature_weight_ = 1.0;
-        type_weight_ = 1.0;
-
-//        distance_threshold_ = 1.5;
+//        distance_threshold_ = 5.53;
 //
-//        iou_weight_ = 1.0;
-//        frame_weight_ = 1.0;
-//        pos_weight_ = 1.0;
-//        scale_weight_ = 0.5;
+//        iou_weight_ = 4.84444;
+//        frame_weight_ = 2.0;
+//        pos_weight_ = 7.487;
+//        scale_weight_ = 3.00;
 //        feature_weight_ = 1.0;
 //        type_weight_ = 1.0;
 
-        kMaxFrameIntervalKeep = 100;
+        distance_threshold_ = 2.5;
+
+        iou_weight_ = 1.0;
+        frame_weight_ = 1.0;
+        pos_weight_ = 1.0;
+        scale_weight_ = 1.0;
+        feature_weight_ = 1.0;
+        type_weight_ = 1.0;
+
+        kMaxFrameIntervalKeep = 10;
         kBoardToDrop = 10;
     }
 
@@ -299,6 +304,8 @@ public:
     }
 
     void Update(vector<DetectObject *> &detectobject_set, vector<unsigned long> &kill_id) {
+        timingProfiler.reset();
+
         // get frame id
         unsigned long current_frame_index = 0;
         if (detectobject_set.size() == 0)
@@ -318,6 +325,8 @@ public:
         if (distance_vec.size() > 0) {
             std::sort(distance_vec.begin(), distance_vec.end(), std::greater<DistanceUnit>());
         }
+        timingProfiler_str = "compute distance";
+        timingProfiler.update(timingProfiler_str);
 //        for (int i = 0; i < distance_vec.size(); i++) {
 //            std::cout << distance_vec[i].distance[0] << std::endl;
 //        }
@@ -337,14 +346,16 @@ public:
             }
         }
 
-
+        timingProfiler_str = "match object";
+        timingProfiler.update(timingProfiler_str);
         //No Matched, create new object
         for (int i = 0; i < detectobject_set.size(); i++) {
             if (!detectobject_matched[i]) {
                 track_system_->createTrackObject(detectobject_set[i]);
             }
         }
-
+        timingProfiler_str = "create object";
+        timingProfiler.update(timingProfiler_str);
         //Detele the unaliave object
         std::set<TrackObject *> to_detele;
         for (int i = 0; i < trackobject_set.size(); i++) {
@@ -360,12 +371,17 @@ public:
                 }
             }
         }
-
+        timingProfiler_str = "delete object collect";
+        timingProfiler.update(timingProfiler_str);
 
         kill_id.clear();
         for (auto it = to_detele.begin(); it != to_detele.end(); it++)
             kill_id.push_back((*it)->trk_id);
         track_system_->inactivateTrackObjects(to_detele);
+
+        timingProfiler_str = "delete object action";
+        timingProfiler.update(timingProfiler_str);
+        LOG(INFO) << timingProfiler.getSmoothedTimeProfileString();
 //        LOG(INFO)<<"track_system_->getALiveTrackObjects().size()"<<track_system_->getALiveTrackObjects().size()<<endl;
     }
 
@@ -399,7 +415,7 @@ private:
         }
 
         float iou_distance = 1.0f - iou(vt_location, dt_location);
-        float frame_distance = frame_interval <= kMaxFrameIntervalKeep ? (frame_interval - 1) * 0.015f : 10;
+        float frame_distance = frame_interval <= kMaxFrameIntervalKeep ? (frame_interval - 1) * 0.15f : 10;
         float max_unit = std::max(
                 std::max(std::max(vt_location.width, dt_location.width), vt_location.height),
                 dt_location.height);
@@ -526,7 +542,7 @@ public:
                             objResult.dir.up_down_dir = matchPacket->direction.y;
                             frameResult.obj.push_back(objResult);
                         }
-                    } else if (match_list_size == 1 && frame_index==frm_id){
+                    } else if (match_list_size == 1 && frame_index == frm_id) {
                         DetectObject *rfirstDetectObject = trackObject->match_list[match_list_size -
                                                                                    1]->detect_object;
                         ObjResult objResult;
