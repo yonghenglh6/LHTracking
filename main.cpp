@@ -25,11 +25,11 @@ const unsigned char LabelColors[][3] = {{251, 144, 17},
 
 int main(int argn, char **arg) {
 
-    string dataset_id("haiguan");
+    string dataset_id("n1");
     string base_dir("/home/liuhao/workspace/1_dgvehicle/LHTracking/");
     string dataset_name = dataset_id;
     string imagelist_file = base_dir + "data/" + dataset_name + ".list";
-    string detectresult_file = base_dir + "data/detect_" + dataset_name;
+    string detectresult_file = base_dir + "data/detect_gd_" + dataset_name;
     string track_output_file = base_dir + "track_" + dataset_name + ".txt";
     string track_image_output_directory = base_dir + "track_" + dataset_name + "/";
 
@@ -38,7 +38,7 @@ int main(int argn, char **arg) {
         << "Can not create the image folder.";
     }
     ofstream track_output(track_output_file.c_str());
-    int fps = 4;
+    int fps = 15;
     int skip_frames = 0;
     skip_frames = int(skip_frames / fps) * fps + 1;
     LOG(INFO) << "SKIP FRAME: " << skip_frames;
@@ -98,7 +98,7 @@ int main(int argn, char **arg) {
         }
         if (display) {
             for (int i = 0; i < result.size(); i++) {
-                if (((result[i].frm_id - 1) % fps == 0)) {
+                if (((result[i].frm_id - 1) % fps >= 0)) {
                     char tmp_char[512];
                     for (int j = 0; j < result[i].obj.size(); j++) {
                         int color_idx = result[i].obj[j].obj_id % 5;
@@ -134,6 +134,7 @@ int main(int argn, char **arg) {
                         stop = true;
                     }
                 }
+//                if ((result[i].frm_id - 1) % fps == 0)
                 all_imgs.pop_front();
             }
         }
