@@ -16,21 +16,27 @@
 namespace dataloader {
     class DataReader {
     public:
-        DataReader() {
-
-        }
+        DataReader() {};
 
         virtual ~DataReader() {
 
-        }
+        };
 
         virtual int readNextImage(cv::Mat &mat) {
             return 0;
-        }
+        };
+
+        virtual int readNextImage(cv::Mat &mat, int next) {
+            return 0;
+        };
 
         virtual bool isOpened() {
             return false;
-        }
+        };
+
+        virtual long getTotalFrames() {
+            return 0;
+        };
     };
 
     class VideoDataReader : public DataReader {
@@ -58,10 +64,17 @@ namespace dataloader {
             return index_frame - 1;
         }
 
+        virtual int readNextImage(cv::Mat &mat, int next) {
+            CHECK(false) << "Not support function";
+        }
+
         virtual bool isOpened() {
             return openned;
         }
 
+        virtual long getTotalFrames() {
+            return tot_frm_num;
+        };
         cv::VideoCapture capture;
         int index_frame = 0;
         unsigned long tot_frm_num;
@@ -94,21 +107,26 @@ namespace dataloader {
         }
 
         virtual int readNextImage(cv::Mat &mat) {
+            return readNextImage(mat, 1);
+        }
 
+        virtual int readNextImage(cv::Mat &mat, int next) {
             if (index_frame >= tot_frm_num)
                 return -2;
-//            LOG(INFO)<<imagenames[index_frame]<<std::endl;
             mat = cv::imread(imagenames[index_frame]);
             if (mat.cols <= 0)
                 return -1;
-            index_frame += 1;
-            return index_frame - 1;
+            index_frame += next;
+            return index_frame - next;
         }
 
         virtual bool isOpened() {
             return openned;
         }
 
+        virtual long getTotalFrames() {
+            return tot_frm_num;
+        };
         std::vector<std::string> imagenames;
         int index_frame;
         unsigned long tot_frm_num;

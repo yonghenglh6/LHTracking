@@ -6,7 +6,7 @@
 #define LHTRACKING_LH_TRACKING_H
 
 #include <sys/time.h>
-#include <stdio.h>
+#include <cstdio>
 #include <opencv2/opencv.hpp>
 #include <fstream>
 #include <algorithm>
@@ -136,6 +136,7 @@ namespace Tracking4_0 {
             frame_packet_index[detect_object->frame_index] = match_packet;
         }
 
+
         void match_detect(DetectObject *detect_object, vector<float> match_distance) {
             state_track = TRACKSTATE_NORMAL;
             MatchPacket *match_packet = new MatchPacket();
@@ -155,6 +156,7 @@ namespace Tracking4_0 {
                                    velocity.y * 0.1 + local_velocity.y * 0.9);
 
             double speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
 
 //        LOG(INFO) << "speed: " << speed << " , velocity.x: " << velocity.x << " , velocity.y: " << velocity.y << endl;
             if (speed < 0.1) {
@@ -270,6 +272,7 @@ namespace Tracking4_0 {
         bool operator>(const DistanceUnit &rhs) const { return this->distance[0] < rhs.distance[0]; }
     };
 
+
     class TrackStrategy {
     public:
         explicit TrackStrategy(TrackSystem *track_system) {
@@ -277,12 +280,24 @@ namespace Tracking4_0 {
             picture_width_ = 640;
             picture_height_ = 480;
 
-//        distance_threshold_ = 6.53;
+
+
+//         distance_threshold_ = 3.0;
+
+//         iou_weight_ = 1.0;
+//         frame_weight_ = 1.0;
+//         pos_weight_ = 1.0;
+//         scale_weight_ = 1.00;
+//         feature_weight_ = 1.0;
+//         type_weight_ = 1.0;
+
+
+//        distance_threshold_ = 6.0;
 //
-//        iou_weight_ = 4.84444;
+//        iou_weight_ = 5.15;
 //        frame_weight_ = 2.0;
-//        pos_weight_ = 7.487;
-//        scale_weight_ = 3.00;
+//        pos_weight_ = 3.295;
+//        scale_weight_ = 1.635;
 //        feature_weight_ = 1.0;
 //        type_weight_ = 1.0;
 
@@ -298,6 +313,7 @@ namespace Tracking4_0 {
             kMaxFrameIntervalKeep = 100;
             kBoardToDrop = 10;
         }
+
 
         void set_picture_size(int picture_width, int picture_height) {
             picture_width_ = picture_width;
@@ -390,20 +406,28 @@ namespace Tracking4_0 {
             return overlop_area / (r1.width * r1.height + r2.width * r2.height - overlop_area);
         }
 
-        vector<float> calculateDistance(TrackObject *track_object, DetectObject *detect_object) {
-            DetectObject *last_detect_object = track_object->getLastDetectObject();
-            long frame_interval = detect_object->frame_index - last_detect_object->frame_index;
-            auto diff_x = int(track_object->velocity.x * frame_interval), diff_y = int(
-                    track_object->velocity.y * frame_interval);
-            Rect vt_location = rect_move(last_detect_object->location, diff_x, diff_y);
-            Rect &dt_location = detect_object->location;
-            float distance = 0;
-            float iou_weight = iou_weight_;
-            float frame_weight = frame_weight_;
-            float pos_weight = pos_weight_;
-            float scale_weight = scale_weight_;
-            float feature_weight = feature_weight_;
-            float type_weight = type_weight_;
+
+    vector<float> calculateDistance(TrackObject *track_object, DetectObject *detect_object) {
+        DetectObject *last_detect_object = track_object->getLastDetectObject();
+        long frame_interval = detect_object->frame_index - last_detect_object->frame_index;
+        float change_rate = (detect_object->location.width * 1.0 / last_detect_object->location.width) * 0.5 +
+                            (detect_object->location.height * 1.0 / last_detect_object->location.height) * 0.5;
+//        float change_rate = 1.0;
+        if (change_rate < 0.5)change_rate = 0.5;
+        if (change_rate > 2.0)change_rate = 2.0;
+//        LOG(INFO) << "change_rate: " << change_rate << endl;
+        auto diff_x = int(track_object->velocity.x * change_rate * frame_interval), diff_y = int(
+                track_object->velocity.y * frame_interval);
+        Rect vt_location = rect_move(last_detect_object->location, diff_x, diff_y);
+        Rect &dt_location = detect_object->location;
+        float distance = 0;
+        float iou_weight = iou_weight_;
+        float frame_weight = frame_weight_;
+        float pos_weight = pos_weight_;
+        float scale_weight = scale_weight_;
+        float feature_weight = feature_weight_;
+        float type_weight = type_weight_;
+
 //        if (track_object->state_track == TRACKSTATE_INITIAL) {
 //            pos_weight /= 2;
 //            iou_weight /= 2;
@@ -464,6 +488,7 @@ namespace Tracking4_0 {
             trackStrategy = new TrackStrategy(trackSystem);
         }
 
+
         ~LHTracker() {
             delete trackSystem;
             delete trackStrategy;
@@ -490,6 +515,7 @@ namespace Tracking4_0 {
                 }
                 trackStrategy->set_picture_size(img.cols, img.rows);
                 trackStrategy->Update(detectobject_set, kill_id);
+
 //            if (!isFirstFrame) {
                 result.clear();
                 vector<TrackObject *> aliveTrackObjects = trackSystem->getALiveTrackObjects();
@@ -550,15 +576,45 @@ namespace Tracking4_0 {
                             objResult.type = (unsigned char) rfirstDetectObject->type;
                             objResult.obj_id = trackObject->trk_id;
                             objResult.score = trackObject->getLastDetectObject()->det_score;
-                            objResult.loc.x = int(rfirstDetectObject->location.x);
-                            objResult.loc.y = int(rfirstDetectObject->location.y);
-                            objResult.loc.width = int(rfirstDetectObject->location.width);
-                            objResult.loc.height = int(rfirstDetectObject->location.height);
-                            objResult.sl = UNKNOWN_SPEED;
-                            objResult.dir.left_right_dir = 0;
-                            objResult.dir.up_down_dir = 0;
+
+                            objResult.loc.x = int(rfirstDetectObject->location.x * radio_rfirst +
+                                                  rsecondDetectObject->location.x * radio_rsecond);
+                            objResult.loc.y = int(rfirstDetectObject->location.y * radio_rfirst +
+                                                  rsecondDetectObject->location.y * radio_rsecond);
+                            objResult.loc.width = int(rfirstDetectObject->location.width * radio_rfirst +
+                                                      rsecondDetectObject->location.width * radio_rsecond);
+                            objResult.loc.height = int(rfirstDetectObject->location.height * radio_rfirst +
+                                                       rsecondDetectObject->location.height * radio_rsecond);
+                            MatchPacket *matchPacket = trackObject->getLastMatchPacket();
+                            float speed = matchPacket->speed;
+                            objResult.sl = MED_SPEED;
+//                                LOG(INFO) << "speed: " << speed << endl;
+                            if (speed > 5)
+                                objResult.sl = FAST_SPEED;
+                            else if (speed < 1)
+                                objResult.sl = SLOW_SPEED;
+                            objResult.dir.left_right_dir = matchPacket->direction.x;
+                            objResult.dir.up_down_dir = matchPacket->direction.y;
+                            if (frame_index == frm_id)
+                                objResult.match_distance = trackObject->getLastMatchPacket()->match_distance;
                             frameResult.obj.push_back(objResult);
                         }
+                    } else if (match_list_size == 1 && frame_index == frm_id) {
+                        DetectObject *rfirstDetectObject = trackObject->match_list[match_list_size -
+                                                                                   1]->detect_object;
+                        ObjResult objResult;
+                        objResult.type = (unsigned char) rfirstDetectObject->type;
+                        objResult.obj_id = trackObject->trk_id;
+                        objResult.score = trackObject->getLastDetectObject()->det_score;
+                        objResult.loc.x = int(rfirstDetectObject->location.x);
+                        objResult.loc.y = int(rfirstDetectObject->location.y);
+                        objResult.loc.width = int(rfirstDetectObject->location.width);
+                        objResult.loc.height = int(rfirstDetectObject->location.height);
+                        objResult.sl = UNKNOWN_SPEED;
+                        objResult.dir.left_right_dir = 0;
+                        objResult.dir.up_down_dir = 0;
+                        frameResult.obj.push_back(objResult);
+
                     }
                     result.push_back(frameResult);
                 }
