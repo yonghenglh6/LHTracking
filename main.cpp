@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "Tracker.h"
 #include "data_loader.h"
-#include "lh_tracking.h"
+//#include "lh_tracking.h"
+
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -12,6 +14,7 @@
 #include <iostream>
 #include <fstream>
 #include <glog/logging.h>
+#include <deque>
 
 using namespace std;
 using namespace cv;
@@ -52,9 +55,9 @@ int main(int argn, char **arg) {
     map<int, vector<dataloader::DetectObject> > detect_result;
     dataloader::read_detection_result(detectresult_file, detect_result);
 
-    deque<Mat> all_imgs;
+    std::deque<Mat> all_imgs;
 
-    LHTracker *tracker = new LHTracker();
+    Tracker *tracker = createVSDTracker();
     Mat frame;
     int frame_index = skip_frames;
     bool stop = false;

@@ -13,6 +13,7 @@
 #include <deque>
 #include <map>
 #include <set>
+#include "Tracker.h"
 
 using cv::Mat;
 using cv::Rect;
@@ -434,30 +435,8 @@ private:
     int kMaxFrameIntervalKeep, kBoardToDrop;
 };
 
-enum SpeedLevel {
-    FAST_SPEED = 0, MED_SPEED = 1, SLOW_SPEED = 2, UNKNOWN_SPEED = 3,
-};
 
-struct Direction {
-    short up_down_dir;
-    short left_right_dir;
-};
-struct ObjResult {
-    unsigned long obj_id;
-    Rect loc;
-    unsigned char type;
-    float score;
-    SpeedLevel sl;
-    Direction dir;
-    vector<float> match_distance;
-};
-struct FrameResult {
-    unsigned long frm_id;
-    vector<ObjResult> obj;
-};
-typedef vector<FrameResult> TrackingResult;
-
-class LHTracker {
+class LHTracker : public Tracker {
 public:
     LHTracker() {
         trackSystem = new TrackSystem();
@@ -467,6 +446,13 @@ public:
     ~LHTracker() {
         delete trackSystem;
         delete trackStrategy;
+    }
+
+    void Update(const Mat &img, const unsigned long &frm_id,
+                const bool &is_key_frame, const vector<Rect> &det_box,
+                const vector<unsigned char> &det_type, TrackingResult &result) {
+        vector<unsigned long> non_use;
+        Update(img, frm_id, is_key_frame, det_box, det_type, result, non_use);
     }
 
     void Update(const Mat &img, const unsigned long &frm_id,
@@ -571,5 +557,9 @@ private:
     bool isFirstFrame = true;
     unsigned long last_key_frame_index = 0;
 };
+
+Tracker *createVSDTracker() {
+    return new LHTracker();
+}
 
 #endif //LHTRACKING_LH_TRACKING_H
