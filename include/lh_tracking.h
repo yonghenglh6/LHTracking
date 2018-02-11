@@ -6,7 +6,7 @@
 #define LHTRACKING_LH_TRACKING_H
 
 #include <sys/time.h>
-#include <stdio.h>
+#include <cstdio>
 #include <opencv2/opencv.hpp>
 #include <fstream>
 #include <algorithm>
@@ -147,6 +147,7 @@ public:
         else
             velocity = Point2f(velocity.x * 0.1 + local_velocity.x * 0.9, velocity.y * 0.1 + local_velocity.y * 0.9);
 
+
         double speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
 
 //        LOG(INFO) << "speed: " << speed << " , velocity.x: " << velocity.x << " , velocity.y: " << velocity.y << endl;
@@ -267,26 +268,26 @@ class TrackStrategy {
 public:
     explicit TrackStrategy(TrackSystem *track_system) {
         track_system_ = track_system;
-        picture_width_ = 640;
-        picture_height_ = 480;
+        picture_width_ = 1920;
+        picture_height_ = 1080;
 
-//        distance_threshold_ = 6.53;
-//
-//        iou_weight_ = 4.84444;
-//        frame_weight_ = 2.0;
-//        pos_weight_ = 7.487;
-//        scale_weight_ = 3.00;
-//        feature_weight_ = 1.0;
-//        type_weight_ = 1.0;
+        distance_threshold_ = 3.0;
 
-        distance_threshold_ = 5.0;
-
-        iou_weight_ = 5.15;
-        frame_weight_ = 2.0;
-        pos_weight_ = 3.295;
-        scale_weight_ = 1.635;
+        iou_weight_ = 1.0;
+        frame_weight_ = 1.0;
+        pos_weight_ = 1.0;
+        scale_weight_ = 1.00;
         feature_weight_ = 1.0;
         type_weight_ = 1.0;
+
+//        distance_threshold_ = 6.0;
+//
+//        iou_weight_ = 5.15;
+//        frame_weight_ = 2.0;
+//        pos_weight_ = 3.295;
+//        scale_weight_ = 1.635;
+//        feature_weight_ = 1.0;
+//        type_weight_ = 1.0;
 
         kMaxFrameIntervalKeep = 100;
         kBoardToDrop = 10;
@@ -385,7 +386,13 @@ private:
     vector<float> calculateDistance(TrackObject *track_object, DetectObject *detect_object) {
         DetectObject *last_detect_object = track_object->getLastDetectObject();
         long frame_interval = detect_object->frame_index - last_detect_object->frame_index;
-        auto diff_x = int(track_object->velocity.x * frame_interval), diff_y = int(
+        float change_rate = (detect_object->location.width * 1.0 / last_detect_object->location.width) * 0.5 +
+                            (detect_object->location.height * 1.0 / last_detect_object->location.height) * 0.5;
+//        float change_rate = 1.0;
+        if (change_rate < 0.5)change_rate = 0.5;
+        if (change_rate > 2.0)change_rate = 2.0;
+//        LOG(INFO) << "change_rate: " << change_rate << endl;
+        auto diff_x = int(track_object->velocity.x * change_rate * frame_interval), diff_y = int(
                 track_object->velocity.y * frame_interval);
         Rect vt_location = rect_move(last_detect_object->location, diff_x, diff_y);
         Rect &dt_location = detect_object->location;
@@ -442,6 +449,7 @@ struct ObjResult {
     float score;
     SpeedLevel sl;
     Direction dir;
+    vector<float> match_distance;
 };
 struct FrameResult {
     unsigned long frm_id;
@@ -474,7 +482,8 @@ public:
                 detectObject->frame_index = frm_id;
                 detectobject_set.push_back(detectObject);
             }
-            trackStrategy->set_picture_size(img.cols, img.rows);
+            if (!img.empty())
+                trackStrategy->set_picture_size(img.cols, img.rows);
             trackStrategy->Update(detectobject_set, kill_id);
 //            if (!isFirstFrame) {
             result.clear();
@@ -527,9 +536,11 @@ public:
                                 objResult.sl = SLOW_SPEED;
                             objResult.dir.left_right_dir = matchPacket->direction.x;
                             objResult.dir.up_down_dir = matchPacket->direction.y;
+                            if (frame_index == frm_id)
+                                objResult.match_distance = trackObject->getLastMatchPacket()->match_distance;
                             frameResult.obj.push_back(objResult);
                         }
-                    } else if (match_list_size == 1 && frame_index==frm_id){
+                    } else if (match_list_size == 1 && frame_index == frm_id) {
                         DetectObject *rfirstDetectObject = trackObject->match_list[match_list_size -
                                                                                    1]->detect_object;
                         ObjResult objResult;
