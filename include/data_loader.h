@@ -65,7 +65,12 @@ namespace dataloader {
         }
 
         virtual int readNextImage(cv::Mat &mat, int next) {
-            CHECK(false) << "Not support function";
+            int returned_index = 0;
+            while (next-- > 0) {
+                returned_index=readNextImage(mat);
+            }
+            return returned_index;
+//            CHECK(false) << "Not support function";
         }
 
         virtual bool isOpened() {

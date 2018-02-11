@@ -35,7 +35,19 @@ int main(int argn, char **arg) {
         dataset_id = string(arg[1]);
     string base_dir("/home/liuhao/workspace/1_dgvehicle/LHTracking/");
     string dataset_name = dataset_id;
+    int fps = 15;
+    int skip_frames = 0;
+
+    skip_frames = int(skip_frames / fps) * fps + 1;
+    LOG(INFO) << "SKIP FRAME: " << skip_frames;
+
+//
     string imagelist_file = base_dir + "data/" + dataset_name + ".list";
+    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);
+
+//    string video_file=base_dir + "data/" + dataset_name + ".mp4";
+//    dataloader::DataReader *data_reader = new dataloader::VideoDataReader(video_file,skip_frames);
+
     string detectresult_file = base_dir + "data/detecttest" + dataset_name;
 //    string detectresult_file = base_dir + "data/detect_gd_" + dataset_name;
     string track_output_file = base_dir + "track_" + dataset_name + ".txt";
@@ -46,18 +58,14 @@ int main(int argn, char **arg) {
         << "Can not create the image folder.";
     }
     ofstream track_output(track_output_file.c_str());
-    int fps = 15;
-    int skip_frames = 0;
-    skip_frames = int(skip_frames / fps) * fps + 1;
-    LOG(INFO) << "SKIP FRAME: " << skip_frames;
-    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);
+
 
     map<int, vector<dataloader::DetectObject> > detect_result;
     dataloader::read_detection_result(detectresult_file, detect_result);
 
     std::deque<Mat> all_imgs;
 
-    Tracker *tracker = createVSDTracker();
+    Tracker *tracker = Tracker::createVSDTracker();
     Mat frame;
     int frame_index = skip_frames;
     bool stop = false;
@@ -72,8 +80,10 @@ int main(int argn, char **arg) {
             if (frame_index >= data_reader->getTotalFrames())
                 frame_index = -2;
         }
+        LOG(INFO)<<frame_index<<endl;
         if (frame_index == -1) {
             LOG(FATAL) << "Error: can not read frames.\n";
+            break;
         } else if (frame_index == -2) {
             LOG(INFO) << "Image done.";
             break;
@@ -117,9 +127,9 @@ int main(int argn, char **arg) {
 //                                result[i].obj[j].dir.left_right_dir);
                         vector<float> &match_distance = track_object.match_distance;
                         if (match_distance.size() > 4) {
-                            sprintf(tmp_char, "%lu [%.1f] %.1f %.1f %.1f %.1f",
+                            sprintf(tmp_char, "%lu [%.1f] %.1f %.1f %.1f %.1f %.1f %.1f id %.1f",
                                     track_object.obj_id, match_distance[0],
-                                    match_distance[1], match_distance[2], match_distance[3], match_distance[4]);
+                                    match_distance[1], match_distance[2], match_distance[3], match_distance[4], match_distance[5], match_distance[6], match_distance[7]);
                         } else {
                             sprintf(tmp_char, "%lu [initial]",
                                     track_object.obj_id);
