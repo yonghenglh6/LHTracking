@@ -15,7 +15,6 @@
 
 using namespace std;
 using namespace cv;
-using namespace Tracking4_0;
 
 const unsigned char LabelColors[][3] = {{251, 144, 17},
                                         {2,   224, 17},
