@@ -27,7 +27,7 @@ const unsigned char LabelColors[][3] = {{251, 144, 17},
                                         {0,   78,  255}};
 
 int main(int argn, char **arg) {
-    string dataset_id("n12");
+    string dataset_id("n2");
     bool read_image = true;
     bool display = true;
 

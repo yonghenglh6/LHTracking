@@ -354,13 +354,13 @@ public:
 //        kMaxFrameIntervalKeep = 100;
 //        kBoardToDrop = 30;
 
-        distance_threshold_ = 10.0;
+        distance_threshold_ = 6.0;
 
         iou_weight_ = 5.15;
         frame_weight_ = 2.0;
         pos_weight_ = 3.295;
         scale_weight_ = 1.635;
-        feature_weight_ = 3.0;
+        feature_weight_ = 0.0;
         type_weight_ = 1.0;
 
         kMaxFrameIntervalKeep = 100;
