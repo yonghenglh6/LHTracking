@@ -38,7 +38,7 @@ int main(int argn, char **arg) {
     int fps = 15;
     int skip_frames = 0;
 
-    skip_frames = int(skip_frames / fps) * fps + 1;
+    skip_frames = int(skip_frames / fps) * fps + 2;
     LOG(INFO) << "SKIP FRAME: " << skip_frames;
 
 //
@@ -116,10 +116,10 @@ int main(int argn, char **arg) {
                     char tmp_char[512];
                     for (auto track_object: result_frame.obj) {
                         int color_idx = track_object.obj_id % 13;
-//                        rectangle(all_imgs[0], track_object.loc,
-//                                  Scalar(LabelColors[color_idx][2],
-//                                         LabelColors[color_idx][1],
-//                                         LabelColors[color_idx][0]), 3, 8, 0);
+                        rectangle(all_imgs[0], track_object.loc,
+                                  Scalar(LabelColors[color_idx][2],
+                                         LabelColors[color_idx][1],
+                                         LabelColors[color_idx][0]), 3, 8, 0);
 //                        sprintf(tmp_char, "%lu type-%u score-%.0f sl-%d dir-%d-%d",
 //                                result[i].obj[j].obj_id, result[i].obj[j].type,
 //                                result[i].obj[j].score, result[i].obj[j].sl,
@@ -134,13 +134,13 @@ int main(int argn, char **arg) {
                             sprintf(tmp_char, "%lu [initial]",
                                     track_object.obj_id);
                         }
-//                        cv::putText(all_imgs[0], tmp_char,
-//                                    cv::Point(track_object.loc.x,
-//                                              track_object.loc.y - 12),
-//                                    CV_FONT_HERSHEY_COMPLEX, 0.7,
-//                                    Scalar(LabelColors[color_idx][2],
-//                                           LabelColors[color_idx][1],
-//                                           LabelColors[color_idx][0]), 2);
+                        cv::putText(all_imgs[0], tmp_char,
+                                    cv::Point(track_object.loc.x,
+                                              track_object.loc.y - 12),
+                                    CV_FONT_HERSHEY_COMPLEX, 0.7,
+                                    Scalar(LabelColors[color_idx][2],
+                                           LabelColors[color_idx][1],
+                                           LabelColors[color_idx][0]), 2);
                     }
 //                cout << "result[i].frm_id: " << result[i].frm_id;
                     sprintf(tmp_char, (track_image_output_directory + "/%lu.jpg").c_str(),
