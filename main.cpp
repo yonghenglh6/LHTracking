@@ -27,14 +27,14 @@ const unsigned char LabelColors[][3] = {{251, 144, 17},
                                         {0,   78,  255}};
 
 int main(int argn, char **arg) {
-    string dataset_id("n2");
+    string dataset_name("road91");
     bool read_image = true;
     bool display = true;
 
     if (argn > 1)
-        dataset_id = string(arg[1]);
+        dataset_name = string(arg[1]);
     string base_dir("/home/liuhao/workspace/1_dgvehicle/LHTracking/");
-    string dataset_name = dataset_id;
+
     int fps = 15;
     int skip_frames = 0;
 
@@ -42,11 +42,11 @@ int main(int argn, char **arg) {
     LOG(INFO) << "SKIP FRAME: " << skip_frames;
 
 //
-    string imagelist_file = base_dir + "data/" + dataset_name + ".list";
-    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);
+//    string imagelist_file = base_dir + "data/" + dataset_name + ".list";
+//    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);
 
-//    string video_file=base_dir + "data/" + dataset_name + ".mp4";
-//    dataloader::DataReader *data_reader = new dataloader::VideoDataReader(video_file,skip_frames);
+    string video_file=base_dir + "data/" + dataset_name + ".mp4";
+    dataloader::DataReader *data_reader = new dataloader::VideoDataReader(video_file,skip_frames);
 
     string detectresult_file = base_dir + "data/detecttest" + dataset_name;
 //    string detectresult_file = base_dir + "data/detect_gd_" + dataset_name;
@@ -116,10 +116,10 @@ int main(int argn, char **arg) {
                     char tmp_char[512];
                     for (auto track_object: result_frame.obj) {
                         int color_idx = track_object.obj_id % 13;
-                        rectangle(all_imgs[0], track_object.loc,
-                                  Scalar(LabelColors[color_idx][2],
-                                         LabelColors[color_idx][1],
-                                         LabelColors[color_idx][0]), 3, 8, 0);
+//                        rectangle(all_imgs[0], track_object.loc,
+//                                  Scalar(LabelColors[color_idx][2],
+//                                         LabelColors[color_idx][1],
+//                                         LabelColors[color_idx][0]), 3, 8, 0);
 //                        sprintf(tmp_char, "%lu type-%u score-%.0f sl-%d dir-%d-%d",
 //                                result[i].obj[j].obj_id, result[i].obj[j].type,
 //                                result[i].obj[j].score, result[i].obj[j].sl,
@@ -134,13 +134,13 @@ int main(int argn, char **arg) {
                             sprintf(tmp_char, "%lu [initial]",
                                     track_object.obj_id);
                         }
-                        cv::putText(all_imgs[0], tmp_char,
-                                    cv::Point(track_object.loc.x,
-                                              track_object.loc.y - 12),
-                                    CV_FONT_HERSHEY_COMPLEX, 0.7,
-                                    Scalar(LabelColors[color_idx][2],
-                                           LabelColors[color_idx][1],
-                                           LabelColors[color_idx][0]), 2);
+//                        cv::putText(all_imgs[0], tmp_char,
+//                                    cv::Point(track_object.loc.x,
+//                                              track_object.loc.y - 12),
+//                                    CV_FONT_HERSHEY_COMPLEX, 0.7,
+//                                    Scalar(LabelColors[color_idx][2],
+//                                           LabelColors[color_idx][1],
+//                                           LabelColors[color_idx][0]), 2);
                     }
 //                cout << "result[i].frm_id: " << result[i].frm_id;
                     sprintf(tmp_char, (track_image_output_directory + "/%lu.jpg").c_str(),
