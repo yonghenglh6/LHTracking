@@ -97,12 +97,12 @@ int main(int argn, char **arg) {
                       << (result.size() > 0 ? result[0].obj.size() : 0) << endl;
         }
         if (display) {
-            for (int i = 0; i < result.size(); i++) {
-                if (((result[i].frm_id - 1) % fps == 0)) {
+            for (auto result_frame: result) {
+                if (((result_frame.frm_id - 1) % fps == 0)) {
                     char tmp_char[512];
-                    for (int j = 0; j < result[i].obj.size(); j++) {
-                        int color_idx = result[i].obj[j].obj_id % 13;
-                        rectangle(all_imgs[0], result[i].obj[j].loc,
+                    for (auto track_object: result_frame.obj) {
+                        int color_idx = track_object.obj_id % 13;
+                        rectangle(all_imgs[0], track_object.loc,
                                   Scalar(LabelColors[color_idx][2],
                                          LabelColors[color_idx][1],
                                          LabelColors[color_idx][0]), 3, 8, 0);
@@ -111,30 +111,30 @@ int main(int argn, char **arg) {
 //                                result[i].obj[j].score, result[i].obj[j].sl,
 //                                result[i].obj[j].dir.up_down_dir,
 //                                result[i].obj[j].dir.left_right_dir);
-                        vector<float> &match_distance = result[i].obj[j].match_distance;
+                        vector<float> &match_distance = track_object.match_distance;
                         if (match_distance.size() > 4) {
                             sprintf(tmp_char, "%lu [%.1f] %.1f %.1f %.1f %.1f",
-                                    result[i].obj[j].obj_id, match_distance[0],
+                                    track_object.obj_id, match_distance[0],
                                     match_distance[1], match_distance[2], match_distance[3], match_distance[4]);
                         } else {
                             sprintf(tmp_char, "%lu [initial]",
-                                    result[i].obj[j].obj_id);
+                                    track_object.obj_id);
                         }
                         cv::putText(all_imgs[0], tmp_char,
-                                    cv::Point(result[i].obj[j].loc.x,
-                                              result[i].obj[j].loc.y - 12),
+                                    cv::Point(track_object.loc.x,
+                                              track_object.loc.y - 12),
                                     CV_FONT_HERSHEY_COMPLEX, 0.7,
                                     Scalar(LabelColors[color_idx][2],
                                            LabelColors[color_idx][1],
                                            LabelColors[color_idx][0]), 2);
-                        track_output << result[i].frm_id << " " << result[i].obj[j].obj_id << " "
-                                     << int(result[i].obj[j].type) << " "\
- << result[i].obj[j].loc.x << " " << result[i].obj[j].loc.y << " " << result[i].obj[j].loc.width << \
-                            " " << result[i].obj[j].loc.height << "\n";
+                        track_output << result_frame.frm_id << " " << track_object.obj_id << " "
+                                     << int(track_object.type) << " "\
+ << track_object.loc.x << " " << track_object.loc.y << " " << track_object.loc.width << \
+                            " " << track_object.loc.height << "\n";
                     }
 //                cout << "result[i].frm_id: " << result[i].frm_id;
                     sprintf(tmp_char, (track_image_output_directory + "/%lu.jpg").c_str(),
-                            result[i].frm_id);
+                            result_frame.frm_id);
                     imshow("Tracking Debug", all_imgs[0]);
 //                if ((result[i].frm_id - 1) % fps == 0)
                     imwrite(tmp_char, all_imgs[0]);
@@ -144,7 +144,7 @@ int main(int argn, char **arg) {
                         stop = true;
                     }
                 }
-                if (((result[i].frm_id - 1) % fps == 0))
+                if (((result_frame.frm_id - 1) % fps == 0))
                     all_imgs.pop_front();
             }
         }
