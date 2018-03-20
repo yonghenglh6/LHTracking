@@ -38,8 +38,8 @@ public:
     };
 
     float match(const int n,
-                                const float w[MAX_MATCHING_NUM][MAX_MATCHING_NUM],
-                                int inv_link[MAX_MATCHING_NUM]) {
+                const float w[MAX_MATCHING_NUM][MAX_MATCHING_NUM],
+                int inv_link[MAX_MATCHING_NUM]) {
         n_ = n;
         for (int i = 1; i <= n_; i++) {
             lx_[i] = -INF;
@@ -80,6 +80,7 @@ public:
             }
         return res;
     }
+
 private:
     int n_;
     int link_[MAX_MATCHING_NUM];
@@ -88,7 +89,7 @@ private:
     bool visx_[MAX_MATCHING_NUM], visy_[MAX_MATCHING_NUM];
 
     bool DFS(const int x,
-                             const float w[MAX_MATCHING_NUM][MAX_MATCHING_NUM]) {
+             const float w[MAX_MATCHING_NUM][MAX_MATCHING_NUM]) {
         visx_[x] = true;
         for (int y = 1; y <= n_; y++) {
             if (visy_[y])
@@ -187,7 +188,7 @@ public:
         match_packet->state_track = state_track;
         match_packet->direction = Point2f(0, 0);
         match_packet->detect_object = detect_object;
-        detect_object->det_score = float(exp(-match_packet->match_distance[0]));
+//        detect_object->det_score = float(exp(-match_packet->match_distance[0]));
         match_list.push_back(match_packet);
         frame_packet_index[detect_object->frame_index] = match_packet;
     }
@@ -236,7 +237,7 @@ public:
         match_packet->speed = speed;
 
         match_list.push_back(match_packet);
-        detect_object->det_score = float(exp(-match_packet->match_distance[0]));
+//        detect_object->det_score = float(exp(-match_packet->match_distance[0]));
         frame_packet_index[detect_object->frame_index] = match_packet;
     }
 
@@ -514,7 +515,7 @@ private:
                                     mean_unit);
 //        float feature_distance =
 //                cv::compareHist(last_detect_object->hist_feature, detect_object->hist_feature, 1);
-        float feature_distance=0;
+        float feature_distance = 0;
 
         float type_distance = detect_object->type == last_detect_object->type ? 0.0f : 1.0f;
         distance = iou_weight * iou_distance + frame_weight * frame_distance +
@@ -568,7 +569,7 @@ public:
 //        }
 
         Mat hsv;
-        cv::resize(img,hsv,cv::Size(40,40));
+        cv::resize(img, hsv, cv::Size(40, 40));
         cv::cvtColor(img, hsv, CV_BGR2HSV);
         /// 对hue通道使用30个bin,对saturatoin通道使用32个bin
         int h_bins = 8;
@@ -619,6 +620,15 @@ public:
     void Update(const Mat &img, const unsigned long &frm_id,
                 const bool &is_key_frame, const vector<Rect> &det_box,
                 const vector<unsigned char> &det_type, TrackingResult &result, vector<unsigned long> &kill_id) {
+        vector<float> det_score;
+        det_score.resize(det_box.size());
+        Update(img,frm_id,is_key_frame,det_box,det_type,result,kill_id,det_score);
+    }
+
+    void Update(const Mat &img, const unsigned long &frm_id,
+                const bool &is_key_frame, const vector<Rect> &det_box,
+                const vector<unsigned char> &det_type, TrackingResult &result, vector<unsigned long> &kill_id,
+                vector<float>& det_score) {
         if (is_key_frame) {
 
             vector<DetectObject *> detectobject_set;
@@ -628,6 +638,7 @@ public:
                 detectObject->type = det_type[i];
                 detectObject->location = det_box[i];
                 detectObject->frame_index = frm_id;
+                detectObject->det_score=det_score[i];
                 detectobject_set.push_back(detectObject);
 //                if (!img.empty()) {
 ////                    Mat mrect = ;
