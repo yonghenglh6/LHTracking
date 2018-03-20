@@ -68,6 +68,11 @@ public:
                         const bool &is_key_frame, const std::vector<cv::Rect> &det_box,
                         const std::vector<unsigned char> &det_type, TrackingResult &result,
                         std::vector<unsigned long> &kill_id) = 0;
+
+    virtual void Update(const cv::Mat &img, const unsigned long &frm_id,
+                        const bool &is_key_frame, const std::vector<cv::Rect> &det_box,
+                        const std::vector<unsigned char> &det_type, TrackingResult &result,
+                        std::vector<unsigned long> &kill_id,std::vector<float> &det_score) = 0;
 };
 
 
