@@ -35,20 +35,21 @@ int main(int argn, char **arg) {
         dataset_name = string(arg[1]);
     string base_dir("/home/liuhao/workspace/1_dgvehicle/LHTracking/");
 
-    int fps = 15;
+    string detectresult_file = base_dir + "data/detecttest" + dataset_name;
+    int fps = 8;
     int skip_frames = 0;
 
-    skip_frames = int(skip_frames / fps) * fps + 2;
+    skip_frames = int(skip_frames / fps) * fps + 1;
     LOG(INFO) << "SKIP FRAME: " << skip_frames;
 
-//
-//    string imagelist_file = base_dir + "data/" + dataset_name + ".list";
-//    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);
 
-    string video_file=base_dir + "data/" + dataset_name + ".mp4";
-    dataloader::DataReader *data_reader = new dataloader::VideoDataReader(video_file,skip_frames);
+    string imagelist_file = base_dir + "data/" + dataset_name + ".list";
+    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);
 
-    string detectresult_file = base_dir + "data/detecttest" + dataset_name;
+//    string video_file=base_dir + "data/" + dataset_name + ".mp4";
+//    dataloader::DataReader *data_reader = new dataloader::VideoDataReader(video_file,skip_frames);
+
+
 //    string detectresult_file = base_dir + "data/detect_gd_" + dataset_name;
     string track_output_file = base_dir + "track_" + dataset_name + ".txt";
     string track_image_output_directory = base_dir + "track_" + dataset_name + "/";

@@ -413,7 +413,8 @@ public:
                 if (trackObject->state_track == TRACKSTATE_INITIAL)
                     distance_threshold = distance_threshold_ * 1.5;
                 if (match_distance[0] < distance_threshold) {
-                    LOG(INFO) << "feature_distance: " << match_distance[match_distance.size()-3];
+
+                    LOG(INFO) << "feature_distance: " << match_distance[1];
                     trackobject_matched[distanceUnit.i] = true;
                     detectobject_matched[distanceUnit.j] = true;
                     track_system_->match(trackObject, detectObject, match_distance);
@@ -500,6 +501,7 @@ private:
 //        }
 
         float iou_distance = 1.0f - iou(vt_location, dt_location);
+
         float frame_distance = frame_interval <= kMaxFrameIntervalKeep ? (frame_interval - 1) * 0.015f : 10;
         float max_unit = std::max(
                 std::max(std::max(vt_location.width, dt_location.width), vt_location.height),
@@ -510,8 +512,9 @@ private:
         auto scale_distance = float(std::sqrt(
                 pow(dt_location.width - vt_location.width, 2) + pow(dt_location.height - vt_location.height, 2)) /
                                     mean_unit);
-        float feature_distance =
-                cv::compareHist(last_detect_object->hist_feature, detect_object->hist_feature, 1);
+//        float feature_distance =
+//                cv::compareHist(last_detect_object->hist_feature, detect_object->hist_feature, 1);
+        float feature_distance=0;
 
         float type_distance = detect_object->type == last_detect_object->type ? 0.0f : 1.0f;
         distance = iou_weight * iou_distance + frame_weight * frame_distance +
@@ -626,14 +629,14 @@ public:
                 detectObject->location = det_box[i];
                 detectObject->frame_index = frm_id;
                 detectobject_set.push_back(detectObject);
-                if (!img.empty()) {
-//                    Mat mrect = ;
-                    keep_bound_legal(detectObject->location, img.cols, img.rows);
-//                    LOG(INFO) << "detectObject->location" << detectObject->location.x << " " << detectObject->location.y
-//                              << " "
-//                              << detectObject->location.width << " " << detectObject->location.height;
-                    getHistFeature(img(detectObject->location), detectObject->hist_feature);
-                }
+//                if (!img.empty()) {
+////                    Mat mrect = ;
+//                    keep_bound_legal(detectObject->location, img.cols, img.rows);
+////                    LOG(INFO) << "detectObject->location" << detectObject->location.x << " " << detectObject->location.y
+////                              << " "
+////                              << detectObject->location.width << " " << detectObject->location.height;
+//                    getHistFeature(img(detectObject->location), detectObject->hist_feature);
+//                }
             }
             if (!img.empty())
                 trackStrategy->set_picture_size(img.cols, img.rows);
