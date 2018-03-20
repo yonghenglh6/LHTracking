@@ -621,14 +621,15 @@ public:
                 const bool &is_key_frame, const vector<Rect> &det_box,
                 const vector<unsigned char> &det_type, TrackingResult &result, vector<unsigned long> &kill_id) {
         vector<float> det_score;
-        det_score.resize(det_box.size());
-        Update(img,frm_id,is_key_frame,det_box,det_type,result,kill_id,det_score);
+        for (int i = 0; i < det_box.size(); i++)
+            det_score.push_back(1.0);
+        Update(img, frm_id, is_key_frame, det_box, det_type, result, kill_id, det_score);
     }
 
     void Update(const Mat &img, const unsigned long &frm_id,
                 const bool &is_key_frame, const vector<Rect> &det_box,
                 const vector<unsigned char> &det_type, TrackingResult &result, vector<unsigned long> &kill_id,
-                vector<float>& det_score) {
+                vector<float> &det_score) {
         if (is_key_frame) {
 
             vector<DetectObject *> detectobject_set;
@@ -638,7 +639,7 @@ public:
                 detectObject->type = det_type[i];
                 detectObject->location = det_box[i];
                 detectObject->frame_index = frm_id;
-                detectObject->det_score=det_score[i];
+                detectObject->det_score = det_score[i];
                 detectobject_set.push_back(detectObject);
 //                if (!img.empty()) {
 ////                    Mat mrect = ;
