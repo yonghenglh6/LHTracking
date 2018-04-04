@@ -376,61 +376,63 @@ public:
     void Update(vector<DetectObject *> &detectobject_set, vector<unsigned long> &kill_id) {
         // get frame id
         unsigned long current_frame_index = 0;
-        if (detectobject_set.size() == 0)
-            return;
-        current_frame_index = detectobject_set[0]->frame_index;
+        auto trackobject_set = track_system_->getALiveTrackObjects();
+        if (detectobject_set.size() > 0) {
+//            return;
+            current_frame_index = detectobject_set[0]->frame_index;
 
 //        for(DetectObject* detectObject : detectobject_set){
 //            detectobject_set->inb
 //        }
 
-        auto trackobject_set = track_system_->getALiveTrackObjects();
-        vector<DistanceUnit> distance_vec;
-        vector<bool> trackobject_matched(trackobject_set.size(), false);
-        vector<bool> detectobject_matched(detectobject_set.size(), false);
-        for (int i = 0; i < trackobject_set.size(); i++) {
-            for (int j = 0; j < detectobject_set.size(); j++) {
-                distance_vec.push_back(DistanceUnit(i, j, calculateDistance(trackobject_set[i], detectobject_set[j])));
+
+            vector<DistanceUnit> distance_vec;
+            vector<bool> trackobject_matched(trackobject_set.size(), false);
+            vector<bool> detectobject_matched(detectobject_set.size(), false);
+            for (int i = 0; i < trackobject_set.size(); i++) {
+                for (int j = 0; j < detectobject_set.size(); j++) {
+                    distance_vec.push_back(
+                            DistanceUnit(i, j, calculateDistance(trackobject_set[i], detectobject_set[j])));
+                }
             }
-        }
-        if (distance_vec.size() > 0) {
-            std::sort(distance_vec.begin(), distance_vec.end(), std::greater<DistanceUnit>());
-        }
+            if (distance_vec.size() > 0) {
+                std::sort(distance_vec.begin(), distance_vec.end(), std::greater<DistanceUnit>());
+            }
 //        for (int i = 0; i < distance_vec.size(); i++) {
 //            std::cout << distance_vec[i].distance[0] << std::endl;
 //        }
 
 
 
-        //Matched
-        for (int index = 0; index < distance_vec.size(); index++) {
-            DistanceUnit &distanceUnit = distance_vec[index];
+            //Matched
+            for (int index = 0; index < distance_vec.size(); index++) {
+                DistanceUnit &distanceUnit = distance_vec[index];
 
-            vector<float> &match_distance = distanceUnit.distance;
-            if (!trackobject_matched[distanceUnit.i] && !detectobject_matched[distanceUnit.j]) {
-                TrackObject *trackObject = trackobject_set[distanceUnit.i];
-                DetectObject *detectObject = detectobject_set[distanceUnit.j];
-                float distance_threshold = distance_threshold_;
-                if (trackObject->state_track == TRACKSTATE_INITIAL)
-                    distance_threshold = distance_threshold_ * 1.5;
-                if (match_distance[0] < distance_threshold) {
+                vector<float> &match_distance = distanceUnit.distance;
+                if (!trackobject_matched[distanceUnit.i] && !detectobject_matched[distanceUnit.j]) {
+                    TrackObject *trackObject = trackobject_set[distanceUnit.i];
+                    DetectObject *detectObject = detectobject_set[distanceUnit.j];
+                    float distance_threshold = distance_threshold_;
+                    if (trackObject->state_track == TRACKSTATE_INITIAL)
+                        distance_threshold = distance_threshold_ * 1.5;
+                    if (match_distance[0] < distance_threshold) {
 
-                    LOG(INFO) << "feature_distance: " << match_distance[1];
-                    trackobject_matched[distanceUnit.i] = true;
-                    detectobject_matched[distanceUnit.j] = true;
-                    track_system_->match(trackObject, detectObject, match_distance);
+                        LOG(INFO) << "feature_distance: " << match_distance[1];
+                        trackobject_matched[distanceUnit.i] = true;
+                        detectobject_matched[distanceUnit.j] = true;
+                        track_system_->match(trackObject, detectObject, match_distance);
+                    }
+                }
+            }
+
+
+            //No Matched, create new object
+            for (int i = 0; i < detectobject_set.size(); i++) {
+                if (!detectobject_matched[i]) {
+                    track_system_->createTrackObject(detectobject_set[i]);
                 }
             }
         }
-
-
-        //No Matched, create new object
-        for (int i = 0; i < detectobject_set.size(); i++) {
-            if (!detectobject_matched[i]) {
-                track_system_->createTrackObject(detectobject_set[i]);
-            }
-        }
-
         //Detele the unaliave object
         std::set<TrackObject *> to_detele;
         for (int i = 0; i < trackobject_set.size(); i++) {
