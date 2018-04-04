@@ -45,23 +45,22 @@ public:
     vector<float> match_distance;
     StateTrack state_track = TRACKSTATE_UNINITIAL;
     Point2f direction;
-    DetectObject *detect_object;
-    float speed;
+    DetectObject *detect_object = nullptr;
+    float speed = 0;
 
     ~MatchPacket() {
-        if (detect_object != NULL)
-            delete detect_object;
+        delete detect_object;
     }
 };
 
 static float rect_distance(Rect &rect1, Rect &rect2) {
-    return sqrt(pow(rect1.x + rect1.width / 2 - rect2.x - rect2.width / 2, 2) +
-                pow(rect1.y + rect1.height / 2 - rect2.y - rect2.height / 2, 2));
+    return sqrt(pow(rect1.x + rect1.width / 2.0 - rect2.x - rect2.width / 2.0, 2) +
+                pow(rect1.y + rect1.height / 2.0 - rect2.y - rect2.height / 2.0, 2));
 }
 
 static Point2f rect_diff(Rect &rect1, Rect &rect2) {
-    return Point2f(rect1.x + rect1.width / 2 - rect2.x - rect2.width / 2,
-                   rect1.y + rect1.height / 2 - rect2.y - rect2.height / 2);
+    return Point2f(rect1.x + rect1.width / 2.0 - rect2.x - rect2.width / 2.0,
+                   rect1.y + rect1.height / 2.0 - rect2.y - rect2.height / 2.0);
 }
 
 static inline Rect rect_move(Rect &rect1, int diff_x, int diff_y) {
@@ -77,14 +76,14 @@ public:
     std::map<int, MatchPacket *> frame_packet_index;
 
     TrackObject() {
-        trk_id = -1;
+        trk_id = 0;
         state_track = TRACKSTATE_UNINITIAL;
         velocity = Point2f(0, 0);
     }
 
     ~TrackObject() {
-        for (int i = 0; i < match_list.size(); i++) {
-            delete match_list[i];
+        for (auto match : match_list) {
+            delete match;
         }
         frame_packet_index.clear();
         match_list.clear();
@@ -93,7 +92,7 @@ public:
     void init_detect(long object_uid, DetectObject *detect_object) {
         trk_id = object_uid;
         state_track = TRACKSTATE_INITIAL;
-        MatchPacket *match_packet = new MatchPacket();
+        auto *match_packet = new MatchPacket();
         match_packet->match_distance.push_back(0.0);
         match_packet->match_distance.push_back(detect_object->det_id);
         match_packet->state_track = state_track;
