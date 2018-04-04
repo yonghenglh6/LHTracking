@@ -5,6 +5,8 @@
 #ifndef LHTRACKING_LH_TRACKING_H
 #define LHTRACKING_LH_TRACKING_H
 
+#include "Tracker.h"
+
 #include <sys/time.h>
 #include <cstdio>
 #include <opencv2/opencv.hpp>
@@ -13,7 +15,6 @@
 #include <deque>
 #include <map>
 #include <set>
-#include "Tracker.h"
 #include "glog/logging.h"
 
 using cv::Mat;
@@ -24,90 +25,6 @@ using cv::Point2i;
 using std::deque;
 using std::map;
 using std::pair;
-using std::endl;
-// -------------------------------------- Binary Matching -----------------------------------------------------
-#define MAX_MATCHING_NUM 101
-#define INF 999999999
-
-class BinaryMatching {
-public:
-    BinaryMatching() {
-    };
-
-    ~BinaryMatching() {
-    };
-
-    float match(const int n,
-                const float w[MAX_MATCHING_NUM][MAX_MATCHING_NUM],
-                int inv_link[MAX_MATCHING_NUM]) {
-        n_ = n;
-        for (int i = 1; i <= n_; i++) {
-            lx_[i] = -INF;
-            ly_[i] = 0;
-            link_[i] = -1;
-            inv_link[i - 1] = -1;
-            for (int j = 1; j <= n_; j++)
-                if (w[i][j] > lx_[i])
-                    lx_[i] = w[i][j];
-        }
-        for (int x = 1; x <= n_; x++) {
-            for (int i = 1; i <= n_; i++)
-                slack_[i] = INF;
-            while (1) {
-                for (int i = 1; i <= n_; i++)
-                    visx_[i] = visy_[i] = false;
-                if (DFS(x, w))
-                    break;
-                int d = INF;
-                for (int i = 1; i <= n_; i++)
-                    if (!visy_[i] && d > slack_[i])
-                        d = slack_[i];
-                for (int i = 1; i <= n_; i++) {
-                    if (visx_[i])
-                        lx_[i] -= d;
-                    if (visy_[i])
-                        ly_[i] += d;
-                    else
-                        slack_[i] -= d;
-                }
-            }
-        }
-        float res = 0;
-        for (int i = 1; i <= n_; i++)
-            if (link_[i] > -1) {
-                res += w[link_[i]][i];
-                inv_link[link_[i] - 1] = i - 1;
-            }
-        return res;
-    }
-
-private:
-    int n_;
-    int link_[MAX_MATCHING_NUM];
-    float lx_[MAX_MATCHING_NUM], ly_[MAX_MATCHING_NUM],
-            slack_[MAX_MATCHING_NUM];
-    bool visx_[MAX_MATCHING_NUM], visy_[MAX_MATCHING_NUM];
-
-    bool DFS(const int x,
-             const float w[MAX_MATCHING_NUM][MAX_MATCHING_NUM]) {
-        visx_[x] = true;
-        for (int y = 1; y <= n_; y++) {
-            if (visy_[y])
-                continue;
-            int t = lx_[x] + ly_[y] - w[x][y];
-            if (t == 0) {
-                visy_[y] = true;
-                if (link_[y] == -1 || DFS(link_[y], w)) {
-                    link_[y] = x;
-                    return true;
-                }
-            } else if (slack_[y] > t)
-                slack_[y] = t;
-        }
-        return false;
-    }
-};
-// --------------------------------------------------------------------------------------------------------------
 
 
 class DetectObject {
@@ -115,11 +32,8 @@ public:
     unsigned long det_id;
     unsigned long frame_index;
     unsigned long type;
-//    vector<float> feature;
     float det_score;
-    cv::MatND hist_feature;
     Rect location;
-    bool inboard;
 };
 
 enum StateTrack {
@@ -169,7 +83,6 @@ public:
     }
 
     ~TrackObject() {
-//        LOG(WARNING)<<"HELKKIU"<<endl;
         for (int i = 0; i < match_list.size(); i++) {
             delete match_list[i];
         }
@@ -179,16 +92,13 @@ public:
 
     void init_detect(long object_uid, DetectObject *detect_object) {
         trk_id = object_uid;
-//        LOG(INFO) << "trk_id " << trk_id << std::endl;
         state_track = TRACKSTATE_INITIAL;
         MatchPacket *match_packet = new MatchPacket();
-//        match_packet->match_distance.resize(1);
         match_packet->match_distance.push_back(0.0);
         match_packet->match_distance.push_back(detect_object->det_id);
         match_packet->state_track = state_track;
         match_packet->direction = Point2f(0, 0);
         match_packet->detect_object = detect_object;
-//        detect_object->det_score = float(exp(-match_packet->match_distance[0]));
         match_list.push_back(match_packet);
         frame_packet_index[detect_object->frame_index] = match_packet;
     }
@@ -212,8 +122,6 @@ public:
 
 
         double speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-
-//        LOG(INFO) << "speed: " << speed << " , velocity.x: " << velocity.x << " , velocity.y: " << velocity.y << endl;
         if (speed < 0.1) {
             match_packet->direction.x = 0;
             match_packet->direction.y = 0;
@@ -237,7 +145,6 @@ public:
         match_packet->speed = speed;
 
         match_list.push_back(match_packet);
-//        detect_object->det_score = float(exp(-match_packet->match_distance[0]));
         frame_packet_index[detect_object->frame_index] = match_packet;
     }
 
@@ -248,11 +155,7 @@ public:
     MatchPacket *getLastMatchPacket() {
         return match_list.back();
     }
-//    Rect loc;
-//    unsigned char type;
-//    float score;
-//    SpeedLevel sl;
-//    Direction dir;
+
 };
 
 class TrackFrame {
@@ -327,50 +230,64 @@ struct DistanceUnit {
     bool operator>(const DistanceUnit &rhs) const { return this->distance[0] < rhs.distance[0]; }
 };
 
+class TrackStrategyParam {
+public:
+    int picture_width_, picture_height_;
+    float distance_threshold_, iou_weight_, frame_weight_, pos_weight_, scale_weight_, feature_weight_, type_weight_;
+    int kMaxFrameIntervalKeep, kBoardToDrop;
+};
+
+class TrackStrategyParamStrage {
+public:
+    static TrackStrategyParam getDefaultFaceTrackStrategyParam(int picture_width, int picture_height) {
+        TrackStrategyParam param;
+        param.picture_width_ = picture_width;
+        param.picture_height_ = picture_height;
+
+        param.distance_threshold_ = 2.0;
+
+        param.iou_weight_ = 1.0;
+        param.frame_weight_ = 1.5;
+        param.pos_weight_ = 1.0;
+        param.scale_weight_ = 0.5;
+        param.feature_weight_ = 1.0;
+        param.type_weight_ = 1.0;
+
+        param.kMaxFrameIntervalKeep = 15;
+        param.kBoardToDrop = 10;
+        return param;
+    }
+
+    static TrackStrategyParam getDefaultVehicleTrackStrategyParam(int picture_width, int picture_height) {
+        TrackStrategyParam param;
+        param.picture_width_ = picture_width;
+        param.picture_height_ = picture_height;
+
+        param.distance_threshold_ = 6.0;
+
+        param.iou_weight_ = 5.15;
+        param.frame_weight_ = 2.0;
+        param.pos_weight_ = 3.295;
+        param.scale_weight_ = 1.635;
+        param.feature_weight_ = 0.0;
+        param.type_weight_ = 1.0;
+
+        param.kMaxFrameIntervalKeep = 100;
+        param.kBoardToDrop = 30;
+        return param;
+    }
+};
+
 class TrackStrategy {
 public:
-    explicit TrackStrategy(TrackSystem *track_system) {
+    explicit TrackStrategy(TrackSystem *track_system, TrackStrategyParam param_) {
         track_system_ = track_system;
-        picture_width_ = 1920;
-        picture_height_ = 1080;
-
-//        distance_threshold_ = 3.0;
-//
-//        iou_weight_ = 1.0;
-//        frame_weight_ = 1.0;
-//        pos_weight_ = 1.0;
-//        scale_weight_ = 1.00;
-//        feature_weight_ = 1.0;
-//        type_weight_ = 1.0;
-
-//        distance_threshold_ = 2.5;
-//
-//        iou_weight_ = 1.0;
-//        frame_weight_ = 1.0;
-//        pos_weight_ = 1.0;
-//        scale_weight_ = 1.0;
-//        feature_weight_ = 1.0;
-//        type_weight_ = 1.0;
-//
-//        kMaxFrameIntervalKeep = 100;
-//        kBoardToDrop = 30;
-
-        distance_threshold_ = 6.0;
-
-        iou_weight_ = 5.15;
-        frame_weight_ = 2.0;
-        pos_weight_ = 3.295;
-        scale_weight_ = 1.635;
-        feature_weight_ = 0.0;
-        type_weight_ = 1.0;
-
-        kMaxFrameIntervalKeep = 100;
-        kBoardToDrop = 30;
+        param = param_;
     }
 
     void set_picture_size(int picture_width, int picture_height) {
-        picture_width_ = picture_width;
-        picture_height_ = picture_height;
+        param.picture_width_ = picture_width;
+        param.picture_height_ = picture_height;
     }
 
     void Update(vector<DetectObject *> &detectobject_set, vector<unsigned long> &kill_id) {
@@ -412,12 +329,12 @@ public:
                 if (!trackobject_matched[distanceUnit.i] && !detectobject_matched[distanceUnit.j]) {
                     TrackObject *trackObject = trackobject_set[distanceUnit.i];
                     DetectObject *detectObject = detectobject_set[distanceUnit.j];
-                    float distance_threshold = distance_threshold_;
+                    float distance_threshold = param.distance_threshold_;
                     if (trackObject->state_track == TRACKSTATE_INITIAL)
-                        distance_threshold = distance_threshold_ * 1.5;
+                        distance_threshold = param.distance_threshold_ * 1.5;
                     if (match_distance[0] < distance_threshold) {
 
-                        LOG(INFO) << "feature_distance: " << match_distance[1];
+//                        LOG(INFO) << "feature_distance: " << match_distance[1];
                         trackobject_matched[distanceUnit.i] = true;
                         detectobject_matched[distanceUnit.j] = true;
                         track_system_->match(trackObject, detectObject, match_distance);
@@ -438,10 +355,10 @@ public:
         for (int i = 0; i < trackobject_set.size(); i++) {
             DetectObject *detectObject = trackobject_set[i]->getLastDetectObject();
             int frame_interval = abs(current_frame_index - detectObject->frame_index);
-            if (frame_interval > kMaxFrameIntervalKeep) {
+            if (frame_interval > param.kMaxFrameIntervalKeep) {
                 to_detele.insert(trackobject_set[i]);
             } else if (inboard(detectObject->location)) {
-                if (frame_interval > kMaxFrameIntervalKeep / 2) {
+                if (frame_interval > param.kMaxFrameIntervalKeep / 2) {
                     to_detele.insert(trackobject_set[i]);
                 } else if (frame_interval > 15 && trackobject_set[i]->getLastMatchPacket()->speed > 2) {
                     to_detele.insert(trackobject_set[i]);
@@ -459,10 +376,10 @@ public:
 
 private:
     bool inboard(Rect &location) {
-        return location.x < kBoardToDrop ||
-               location.x + location.width > picture_width_ - kBoardToDrop ||
-               location.y < kBoardToDrop ||
-               location.y + location.height > picture_height_ - kBoardToDrop;
+        return location.x < param.kBoardToDrop ||
+               location.x + location.width > param.picture_width_ - param.kBoardToDrop ||
+               location.y < param.kBoardToDrop ||
+               location.y + location.height > param.picture_height_ - param.kBoardToDrop;
     }
 
     float iou(Rect r1, Rect r2) {
@@ -492,12 +409,12 @@ private:
         Rect vt_location = rect_move(last_detect_object->location, diff_x, diff_y);
         Rect &dt_location = detect_object->location;
         float distance = 0;
-        float iou_weight = iou_weight_;
-        float frame_weight = frame_weight_;
-        float pos_weight = pos_weight_;
-        float scale_weight = scale_weight_;
-        float feature_weight = feature_weight_;
-        float type_weight = type_weight_;
+        float iou_weight = param.iou_weight_;
+        float frame_weight = param.frame_weight_;
+        float pos_weight = param.pos_weight_;
+        float scale_weight = param.scale_weight_;
+        float feature_weight = param.feature_weight_;
+        float type_weight = param.type_weight_;
 //        if (track_object->state_track == TRACKSTATE_INITIAL) {
 //            pos_weight /= 2;
 //            iou_weight /= 2;
@@ -505,7 +422,7 @@ private:
 
         float iou_distance = 1.0f - iou(vt_location, dt_location);
 
-        float frame_distance = frame_interval <= kMaxFrameIntervalKeep ? (frame_interval - 1) * 0.015f : 10;
+        float frame_distance = frame_interval <= param.kMaxFrameIntervalKeep ? (frame_interval - 1) * 0.015f : 10;
         float max_unit = std::max(
                 std::max(std::max(vt_location.width, dt_location.width), vt_location.height),
                 dt_location.height);
@@ -528,17 +445,18 @@ private:
     }
 
     TrackSystem *track_system_;
-    int picture_width_, picture_height_;
-    float distance_threshold_, iou_weight_, frame_weight_, pos_weight_, scale_weight_, feature_weight_, type_weight_;
-    int kMaxFrameIntervalKeep, kBoardToDrop;
+    TrackStrategyParam param;
+//    int picture_width_, picture_height_;
+//    float distance_threshold_, iou_weight_, frame_weight_, pos_weight_, scale_weight_, feature_weight_, type_weight_;
+//    int kMaxFrameIntervalKeep, kBoardToDrop;
 };
 
 
 class LHTracker : public Tracker {
 public:
-    LHTracker() {
+    LHTracker(TrackStrategyParam &mparam) {
         trackSystem = new TrackSystem();
-        trackStrategy = new TrackStrategy(trackSystem);
+        trackStrategy = new TrackStrategy(trackSystem, mparam);
     }
 
     ~LHTracker() {
@@ -546,50 +464,6 @@ public:
         delete trackStrategy;
     }
 
-    void Update(const Mat &img, const unsigned long &frm_id,
-                const bool &is_key_frame, const vector<Rect> &det_box,
-                const vector<unsigned char> &det_type, TrackingResult &result) {
-        vector<unsigned long> non_use;
-        Update(img, frm_id, is_key_frame, det_box, det_type, result, non_use);
-    }
-
-    void getHistFeature(const Mat &img, cv::MatND &hist_feature) {
-//        Mat hsv;
-//        cv::cvtColor(img, hsv, CV_BGR2HSV);
-//        vector<Mat> bgr_planes;
-//        split(hsv, bgr_planes);
-//        int histSize = 16;
-//        float range[] = {0, 180};
-//        const float *histRange = {range};
-//        bool uniform = true;
-//        bool accumulate = false;
-//        Mat b_hist;
-//        calcHist(&bgr_planes[0], 1, 0, Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate);
-//        feature.clear();
-//        for (int i = 1; i < histSize; i++) {
-//            feature.push_back(b_hist.at<float>(i));
-//        }
-
-        Mat hsv;
-        cv::resize(img, hsv, cv::Size(40, 40));
-        cv::cvtColor(img, hsv, CV_BGR2HSV);
-        /// 对hue通道使用30个bin,对saturatoin通道使用32个bin
-        int h_bins = 8;
-        int s_bins = 1;
-        int histSize[] = {h_bins};
-
-        // hue的取值范围从0到256, saturation取值范围从0到180
-        float h_ranges[] = {0, 256};
-        float s_ranges[] = {0, 180};
-
-        const float *ranges[] = {h_ranges};
-
-        // 使用第0和第1通道
-        int channels[] = {0};
-        calcHist(&hsv, 1, channels, Mat(), hist_feature, 1, histSize, ranges, true, false);
-        normalize(hist_feature, hist_feature, 0, 1, cv::NORM_MINMAX, -1, Mat());
-
-    }
 
     int keep_bound_legal(Rect &box, int fwidth, int fheight) {
         if (box.x < 0)
@@ -619,59 +493,42 @@ public:
         return box.height * box.height;
     }
 
-    void Update(const Mat &img, const unsigned long &frm_id,
-                const bool &is_key_frame, const vector<Rect> &det_box,
-                const vector<unsigned char> &det_type, TrackingResult &result, vector<unsigned long> &kill_id) {
-        vector<float> det_score;
-        for (int i = 0; i < det_box.size(); i++)
-            det_score.push_back(1.0);
-        Update(img, frm_id, is_key_frame, det_box, det_type, result, kill_id, det_score);
-    }
-
-    void Update(const Mat &img, const unsigned long &frm_id,
-                const bool &is_key_frame, const vector<Rect> &det_box,
-                const vector<unsigned char> &det_type, TrackingResult &result, vector<unsigned long> &kill_id,
-                vector<float> &det_score) {
+    void Update(DG_DETECT_FRAME_RESULT_S &detect_frame_result, const bool &is_key_frame,
+                std::vector<DG_TRACK_FRAME_RESULT_S> &track_frame_result_set,
+                std::vector<DG_U64> &finished_track_ids) {
         if (is_key_frame) {
 
             vector<DetectObject *> detectobject_set;
-            for (int i = 0; i < det_box.size(); i++) {
+            for (int i = 0; i < detect_frame_result.trackObjects.size(); i++) {
+                DG_DETECT_OBJECT_S &dg_detect_object = detect_frame_result.trackObjects[i];
                 DetectObject *detectObject = new DetectObject();
                 detectObject->det_id = i;
-                detectObject->type = det_type[i];
-                detectObject->location = det_box[i];
-                detectObject->frame_index = frm_id;
-                detectObject->det_score = det_score[i];
+                detectObject->type = dg_detect_object.type;
+                detectObject->location = cv::Rect(dg_detect_object.location.u32X, dg_detect_object.location.u32Y,
+                                                  dg_detect_object.location.u32Width,
+                                                  dg_detect_object.location.u32Height);
+                detectObject->frame_index = detect_frame_result.frameId;
+                detectObject->det_score = dg_detect_object.score;
                 detectobject_set.push_back(detectObject);
-//                if (!img.empty()) {
-////                    Mat mrect = ;
-//                    keep_bound_legal(detectObject->location, img.cols, img.rows);
-////                    LOG(INFO) << "detectObject->location" << detectObject->location.x << " " << detectObject->location.y
-////                              << " "
-////                              << detectObject->location.width << " " << detectObject->location.height;
-//                    getHistFeature(img(detectObject->location), detectObject->hist_feature);
-//                }
             }
-            if (!img.empty())
-                trackStrategy->set_picture_size(img.cols, img.rows);
-            trackStrategy->Update(detectobject_set, kill_id);
-//            if (!isFirstFrame) {
-            result.clear();
+            trackStrategy->Update(detectobject_set, finished_track_ids);
+
+            track_frame_result_set.clear();
             vector<TrackObject *> aliveTrackObjects = trackSystem->getALiveTrackObjects();
             vector<TrackObject *> to_be_returned;
             for (int i = 0; i < aliveTrackObjects.size(); i++) {
                 TrackObject *trackObject = aliveTrackObjects[i];
-                if (trackObject->getLastDetectObject()->frame_index == frm_id) {
+                if (trackObject->getLastDetectObject()->frame_index == detect_frame_result.frameId) {
                     to_be_returned.push_back(trackObject);
                 }
             }
             if (isFirstFrame)
-                last_key_frame_index = frm_id - 1;
-            int frame_interval = frm_id - last_key_frame_index;
+                last_key_frame_index = detect_frame_result.frameId - 1;
+            int frame_interval = detect_frame_result.frameId - last_key_frame_index;
             for (long frame_index = last_key_frame_index + 1;
-                 frame_index <= frm_id; frame_index++) {
-                FrameResult frameResult;
-                frameResult.frm_id = frame_index;
+                 frame_index <= detect_frame_result.frameId; frame_index++) {
+                DG_TRACK_FRAME_RESULT_S frameResult;
+                frameResult.frameId = frame_index;
                 float radio_rfirst = (frame_index - last_key_frame_index) * 1.0 / frame_interval;
                 float radio_rsecond = 1.0 - radio_rfirst;
                 for (int i = 0; i < to_be_returned.size(); i++) {
@@ -682,56 +539,56 @@ public:
                                                                                     2]->detect_object;
                         DetectObject *rfirstDetectObject = trackObject->match_list[match_list_size -
                                                                                    1]->detect_object;
-//                        if (rsecondDetectObject->frame_index == last_key_frame_index) {
-                        ObjResult objResult;
+                        DG_TRACK_OBJECT_S objResult;
                         objResult.type = (unsigned char) rfirstDetectObject->type;
-                        objResult.obj_id = trackObject->trk_id;
-//                                LOG(INFO) << "Object id:" << objResult.obj_id << std::endl;
+                        objResult.trackId = trackObject->trk_id;
                         objResult.score = trackObject->getLastDetectObject()->det_score;
-                        objResult.loc.x = int(rfirstDetectObject->location.x * radio_rfirst +
-                                              rsecondDetectObject->location.x * radio_rsecond);
-                        objResult.loc.y = int(rfirstDetectObject->location.y * radio_rfirst +
-                                              rsecondDetectObject->location.y * radio_rsecond);
-                        objResult.loc.width = int(rfirstDetectObject->location.width * radio_rfirst +
-                                                  rsecondDetectObject->location.width * radio_rsecond);
-                        objResult.loc.height = int(rfirstDetectObject->location.height * radio_rfirst +
-                                                   rsecondDetectObject->location.height * radio_rsecond);
+                        objResult.location.u32X = (unsigned int) (rfirstDetectObject->location.x * radio_rfirst +
+                                                                  rsecondDetectObject->location.x * radio_rsecond);
+                        objResult.location.u32Y = (unsigned int) (rfirstDetectObject->location.y * radio_rfirst +
+                                                                  rsecondDetectObject->location.y * radio_rsecond);
+                        objResult.location.u32Width = (unsigned int) (
+                                rfirstDetectObject->location.width * radio_rfirst +
+                                rsecondDetectObject->location.width * radio_rsecond);
+                        objResult.location.u32Height = (unsigned int) (
+                                rfirstDetectObject->location.height * radio_rfirst +
+                                rsecondDetectObject->location.height *
+                                radio_rsecond);
                         MatchPacket *matchPacket = trackObject->getLastMatchPacket();
                         float speed = matchPacket->speed;
-                        objResult.sl = MED_SPEED;
-//                                LOG(INFO) << "speed: " << speed << endl;
+                        objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_MED;
                         if (speed > 5)
-                            objResult.sl = FAST_SPEED;
+                            objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_FAST;
                         else if (speed < 1)
-                            objResult.sl = SLOW_SPEED;
-                        objResult.dir.left_right_dir = matchPacket->direction.x;
-                        objResult.dir.up_down_dir = matchPacket->direction.y;
-                        if (frame_index == frm_id)
-                            objResult.match_distance = trackObject->getLastMatchPacket()->match_distance;
-                        frameResult.obj.push_back(objResult);
-//                        }
-                    } else if (match_list_size == 1 && frame_index == frm_id) {
+                            objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_SLOW;
+                        objResult.direction.leftRight = matchPacket->direction.x;
+                        objResult.direction.upDown = matchPacket->direction.y;
+                        if (frame_index == detect_frame_result.frameId)
+                            objResult.matchDistance = trackObject->getLastMatchPacket()->match_distance;
+                        frameResult.trackObjects.push_back(objResult);
+
+                    } else if (match_list_size == 1 && frame_index == detect_frame_result.frameId) {
                         DetectObject *rfirstDetectObject = trackObject->match_list[match_list_size -
                                                                                    1]->detect_object;
-                        ObjResult objResult;
+                        DG_TRACK_OBJECT_S objResult;
                         objResult.type = (unsigned char) rfirstDetectObject->type;
-                        objResult.obj_id = trackObject->trk_id;
+                        objResult.trackId = trackObject->trk_id;
                         objResult.score = trackObject->getLastDetectObject()->det_score;
-                        objResult.loc.x = int(rfirstDetectObject->location.x);
-                        objResult.loc.y = int(rfirstDetectObject->location.y);
-                        objResult.loc.width = int(rfirstDetectObject->location.width);
-                        objResult.loc.height = int(rfirstDetectObject->location.height);
-                        objResult.sl = UNKNOWN_SPEED;
-                        objResult.dir.left_right_dir = 0;
-                        objResult.dir.up_down_dir = 0;
-                        frameResult.obj.push_back(objResult);
+                        objResult.location.u32X = int(rfirstDetectObject->location.x);
+                        objResult.location.u32Y = int(rfirstDetectObject->location.y);
+                        objResult.location.u32Width = int(rfirstDetectObject->location.width);
+                        objResult.location.u32Height = int(rfirstDetectObject->location.height);
+                        objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_UNKNOWN;
+                        objResult.direction.leftRight = 0;
+                        objResult.direction.upDown = 0;
+                        frameResult.trackObjects.push_back(objResult);
                     }
                 }
-                result.push_back(frameResult);
+                track_frame_result_set.push_back(frameResult);
             }
-//            }
+
             isFirstFrame = false;
-            last_key_frame_index = frm_id;
+            last_key_frame_index = detect_frame_result.frameId;
         }
     }
 

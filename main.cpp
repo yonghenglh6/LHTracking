@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include "Tracker.h"
 #include "data_loader.h"
-//#include "lh_tracking.h"
-
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -66,7 +64,7 @@ int main(int argn, char **arg) {
 
     std::deque<Mat> all_imgs;
 
-    Tracker *tracker = Tracker::createVSDTracker();
+    Tracker *tracker = createTracker(DG_TRACK_SCENE_E::DG_TRACK_SCENE_VEHICLE, 1920, 1080);
     Mat frame;
     int frame_index = skip_frames;
     bool stop = false;
@@ -81,7 +79,7 @@ int main(int argn, char **arg) {
             if (frame_index >= data_reader->getTotalFrames())
                 frame_index = -2;
         }
-        LOG(INFO)<<frame_index<<endl;
+        LOG(INFO) << frame_index << endl;
         if (frame_index == -1) {
             LOG(FATAL) << "Error: can not read frames.\n";
             break;
@@ -96,28 +94,38 @@ int main(int argn, char **arg) {
 //        LOG(INFO) << "FrameIndex: " << frame_index << endl;
         if (display)
             all_imgs.push_back(frame.clone());
-        TrackingResult result;
+        std::vector<DG_TRACK_FRAME_RESULT_S> result;
         if ((frame_index - 1) % fps == 0) {
-            vector<Rect> pos;
-            vector<unsigned char> type;
-            vector<unsigned long> kill_id;
+
+            DG_DETECT_FRAME_RESULT_S detectFrameResult;
+            detectFrameResult.frameId = frame_index;
+//            vector<Rect> pos;
+//            vector<unsigned char> type;
+            vector<DG_U64> kill_id;
             vector<dataloader::DetectObject> &det_vec = detect_result[int(frame_index)];
             for (int i = 0; i < det_vec.size(); i++) {
-                pos.push_back(det_vec[i].position);
-                type.push_back(det_vec[i].typeID);
+                DG_DETECT_OBJECT_S detectObject;
+                detectObject.detectId = i;
+                detectObject.location.u32X = det_vec[i].position.x;
+                detectObject.location.u32Y = det_vec[i].position.y;
+                detectObject.location.u32Width = det_vec[i].position.width;
+                detectObject.location.u32Height = det_vec[i].position.height;
+                detectObject.type = det_vec[i].typeID;
+                detectFrameResult.trackObjects.push_back(detectObject);
             }
-//            sleep(1);
-            tracker->Update(frame, frame_index, true, pos, type, result, kill_id);
+            tracker->Update(detectFrameResult, true, result, kill_id);
             LOG(INFO) << "FrameIndex: " << frame_index << " , Detect Size: " << det_vec.size() << " , Track Size: "
-                      << (result.size() > 0 ? result[0].obj.size() : 0) << endl;
+                      << (result.size() > 0 ? result[0].trackObjects.size() : 0) << endl;
         }
         if (display) {
             for (auto result_frame: result) {
-                if (((result_frame.frm_id - 1) % fps == 0)) {
+                if (((result_frame.frameId - 1) % fps == 0)) {
                     char tmp_char[512];
-                    for (auto track_object: result_frame.obj) {
-                        int color_idx = track_object.obj_id % 13;
-                        rectangle(all_imgs[0], track_object.loc,
+                    for (auto track_object: result_frame.trackObjects) {
+                        int color_idx = track_object.trackId % 13;
+                        rectangle(all_imgs[0], cv::Rect(track_object.location.u32X, track_object.location.u32Y,
+                                                        track_object.location.u32Width,
+                                                        track_object.location.u32Height),
                                   Scalar(LabelColors[color_idx][2],
                                          LabelColors[color_idx][1],
                                          LabelColors[color_idx][0]), 3, 8, 0);
@@ -126,18 +134,19 @@ int main(int argn, char **arg) {
 //                                result[i].obj[j].score, result[i].obj[j].sl,
 //                                result[i].obj[j].dir.up_down_dir,
 //                                result[i].obj[j].dir.left_right_dir);
-                        vector<float> &match_distance = track_object.match_distance;
+                        vector<float> &match_distance = track_object.matchDistance;
                         if (match_distance.size() > 4) {
                             sprintf(tmp_char, "%lu [%.1f] %.1f %.1f %.1f %.1f %.1f %.1f id %.1f",
-                                    track_object.obj_id, match_distance[0],
-                                    match_distance[1], match_distance[2], match_distance[3], match_distance[4], match_distance[5], match_distance[6], match_distance[7]);
+                                    track_object.trackId, match_distance[0],
+                                    match_distance[1], match_distance[2], match_distance[3], match_distance[4],
+                                    match_distance[5], match_distance[6], match_distance[7]);
                         } else {
                             sprintf(tmp_char, "%lu [initial]",
-                                    track_object.obj_id);
+                                    track_object.trackId);
                         }
                         cv::putText(all_imgs[0], tmp_char,
-                                    cv::Point(track_object.loc.x,
-                                              track_object.loc.y - 12),
+                                    cv::Point(track_object.location.u32X,
+                                              track_object.location.u32Y - 12),
                                     CV_FONT_HERSHEY_COMPLEX, 0.7,
                                     Scalar(LabelColors[color_idx][2],
                                            LabelColors[color_idx][1],
@@ -145,27 +154,27 @@ int main(int argn, char **arg) {
                     }
 //                cout << "result[i].frm_id: " << result[i].frm_id;
                     sprintf(tmp_char, (track_image_output_directory + "/%lu.jpg").c_str(),
-                            result_frame.frm_id);
+                            result_frame.frameId);
                     imshow("Tracking Debug", all_imgs[0]);
 //                if ((result[i].frm_id - 1) % fps == 0)
                     imwrite(tmp_char, all_imgs[0]);
 
-                    int c = waitKey(1);
+                    int c = waitKey(300);
                     if ((char) c == 27) {
                         stop = true;
                     }
                 }
-                if (((result_frame.frm_id - 1) % fps == 0))
+                if (((result_frame.frameId - 1) % fps == 0))
                     all_imgs.pop_front();
             }
         }
         for (auto result_frame: result) {
-            if (((result_frame.frm_id - 1) % fps == 0)) {
-                for (auto track_object: result_frame.obj) {
-                    track_output << result_frame.frm_id << " " << track_object.obj_id << " "
+            if (((result_frame.frameId - 1) % fps == 0)) {
+                for (auto track_object: result_frame.trackObjects) {
+                    track_output << result_frame.frameId << " " << track_object.trackId << " "
                                  << int(track_object.type) << " "\
- << track_object.loc.x << " " << track_object.loc.y << " " << track_object.loc.width << \
-                            " " << track_object.loc.height << "\n";
+ << track_object.location.u32X << " " << track_object.location.u32Y << " " << track_object.location.u32Width << \
+                            " " << track_object.location.u32Height << "\n";
                 }
             }
         }
