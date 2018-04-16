@@ -117,7 +117,7 @@ public:
         if (state_track == TRACKSTATE_INITIAL)
             velocity = local_velocity;
         else
-            velocity = Point2f(velocity.x * 0.1 + local_velocity.x * 0.9, velocity.y * 0.1 + local_velocity.y * 0.9);
+            velocity = Point2f(velocity.x * 0.3 + local_velocity.x * 0.7, velocity.y * 0.3 + local_velocity.y * 0.7);
 
 
         double speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
@@ -404,8 +404,12 @@ private:
         if (change_rate > 2.0)change_rate = 2.0;
 //        LOG(INFO) << "change_rate: " << change_rate << endl;
         auto diff_x = int(track_object->velocity.x * change_rate * frame_interval), diff_y = int(
-                track_object->velocity.y * frame_interval);
-        Rect vt_location = rect_move(last_detect_object->location, diff_x, diff_y);
+                track_object->velocity.y * change_rate * frame_interval);
+
+        Rect vt_location = last_detect_object->location;
+        vt_location.height = vt_location.height * change_rate;
+        vt_location.width = vt_location.width * change_rate;
+        vt_location = rect_move(vt_location, diff_x, diff_y);
         Rect &dt_location = detect_object->location;
         float distance = 0;
         float iou_weight = param.iou_weight_;
@@ -414,10 +418,7 @@ private:
         float scale_weight = param.scale_weight_;
         float feature_weight = param.feature_weight_;
         float type_weight = param.type_weight_;
-//        if (track_object->state_track == TRACKSTATE_INITIAL) {
-//            pos_weight /= 2;
-//            iou_weight /= 2;
-//        }
+
 
         float iou_distance = 1.0f - iou(vt_location, dt_location);
 
@@ -440,7 +441,8 @@ private:
                    pos_weight * pos_distance + scale_weight * scale_distance + feature_weight * feature_distance
                    + type_weight * type_distance;
         return vector<float>{distance, iou_distance, frame_distance, pos_distance, scale_distance, feature_distance,
-                             type_distance, detect_object->det_id};
+                             type_distance, detect_object->det_id, vt_location.x, vt_location.y, vt_location.width,
+                             vt_location.height};
     }
 
     TrackSystem *track_system_;
@@ -500,7 +502,7 @@ public:
             vector<DetectObject *> detectobject_set;
             for (int i = 0; i < detect_frame_result.trackObjects.size(); i++) {
                 DG_DETECT_OBJECT_S &dg_detect_object = detect_frame_result.trackObjects[i];
-                DetectObject *detectObject = new DetectObject();
+                auto *detectObject = new DetectObject();
                 detectObject->det_id = i;
                 detectObject->type = dg_detect_object.type;
                 detectObject->location = cv::Rect(dg_detect_object.location.u32X, dg_detect_object.location.u32Y,
@@ -573,10 +575,10 @@ public:
                         objResult.type = (unsigned char) rfirstDetectObject->type;
                         objResult.trackId = trackObject->trk_id;
                         objResult.score = trackObject->getLastDetectObject()->det_score;
-                        objResult.location.u32X = int(rfirstDetectObject->location.x);
-                        objResult.location.u32Y = int(rfirstDetectObject->location.y);
-                        objResult.location.u32Width = int(rfirstDetectObject->location.width);
-                        objResult.location.u32Height = int(rfirstDetectObject->location.height);
+                        objResult.location.u32X = (unsigned int) (rfirstDetectObject->location.x);
+                        objResult.location.u32Y = (unsigned int) (rfirstDetectObject->location.y);
+                        objResult.location.u32Width = (unsigned int) (rfirstDetectObject->location.width);
+                        objResult.location.u32Height = (unsigned int) (rfirstDetectObject->location.height);
                         objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_UNKNOWN;
                         objResult.direction.leftRight = 0;
                         objResult.direction.upDown = 0;

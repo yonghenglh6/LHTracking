@@ -129,17 +129,19 @@ int main(int argn, char **arg) {
                                   Scalar(LabelColors[color_idx][2],
                                          LabelColors[color_idx][1],
                                          LabelColors[color_idx][0]), 3, 8, 0);
-//                        sprintf(tmp_char, "%lu type-%u score-%.0f sl-%d dir-%d-%d",
-//                                result[i].obj[j].obj_id, result[i].obj[j].type,
-//                                result[i].obj[j].score, result[i].obj[j].sl,
-//                                result[i].obj[j].dir.up_down_dir,
-//                                result[i].obj[j].dir.left_right_dir);
+
                         vector<float> &match_distance = track_object.matchDistance;
                         if (match_distance.size() > 4) {
                             sprintf(tmp_char, "%lu [%.1f] %.1f %.1f %.1f %.1f %.1f %.1f id %.1f",
                                     track_object.trackId, match_distance[0],
                                     match_distance[1], match_distance[2], match_distance[3], match_distance[4],
                                     match_distance[5], match_distance[6], match_distance[7]);
+
+                            Rect vtbox(match_distance[8], match_distance[9], match_distance[10], match_distance[11]);
+                            rectangle(all_imgs[0], vtbox,
+                                      Scalar(LabelColors[color_idx][2]-50,
+                                             LabelColors[color_idx][1]-50,
+                                             LabelColors[color_idx][0]-50), 3, 8, 0);
                         } else {
                             sprintf(tmp_char, "%lu [initial]",
                                     track_object.trackId);
@@ -152,14 +154,12 @@ int main(int argn, char **arg) {
                                            LabelColors[color_idx][1],
                                            LabelColors[color_idx][0]), 2);
                     }
-//                cout << "result[i].frm_id: " << result[i].frm_id;
                     sprintf(tmp_char, (track_image_output_directory + "/%lu.jpg").c_str(),
                             result_frame.frameId);
                     imshow("Tracking Debug", all_imgs[0]);
-//                if ((result[i].frm_id - 1) % fps == 0)
                     imwrite(tmp_char, all_imgs[0]);
 
-                    int c = waitKey(300);
+                    int c = waitKey(0);
                     if ((char) c == 27) {
                         stop = true;
                     }
