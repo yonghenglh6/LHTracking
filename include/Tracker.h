@@ -63,6 +63,6 @@ typedef enum dgDG_TRACK_SCENE_E {
     DG_TRACK_SCENE_VEHICLE = 0, DG_TRACK_SCENE_FACE = 1,
 } DG_TRACK_SCENE_E;
 
-Tracker *createTracker(DG_TRACK_SCENE_E scene, DG_U8 image_width, DG_U8 image_height);
+Tracker *createTracker(DG_TRACK_SCENE_E scene, DG_U32 image_width, DG_U32 image_height);
 
 #endif //DG_TRACKER_H

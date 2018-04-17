@@ -61,13 +61,13 @@ namespace dataloader {
             if (!capture.read(mat))
                 return -1;
             index_frame += 1;
-            return index_frame - 1;
+            return index_frame;
         }
 
         virtual int readNextImage(cv::Mat &mat, int next) {
             int returned_index = 0;
             while (next-- > 0) {
-                returned_index=readNextImage(mat);
+                returned_index = readNextImage(mat);
             }
             return returned_index;
 //            CHECK(false) << "Not support function";
@@ -98,7 +98,7 @@ namespace dataloader {
         void read_labeled_imagelist(const char *filename,
                                     std::vector<std::string> &imagenames) {
             std::ifstream fcin(filename);
-            CHECK(fcin.is_open()) << "Imagelist file cannot be opened.";
+            CHECK(fcin.is_open()) << "Imagelist" << filename << " file cannot be opened.";
             std::string imagename;
             while (!fcin.eof()) {
                 fcin >> imagename;

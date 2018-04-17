@@ -2,7 +2,7 @@
 #include "lh_tracking.h"
 
 
-Tracker *createTracker(DG_TRACK_SCENE_E scene, DG_U8 image_width, DG_U8 image_height) {
+Tracker *createTracker(DG_TRACK_SCENE_E scene, DG_U32 image_width, DG_U32 image_height) {
     TrackStrategyParam param;
     switch (scene) {
         case DG_TRACK_SCENE_E::DG_TRACK_SCENE_FACE:

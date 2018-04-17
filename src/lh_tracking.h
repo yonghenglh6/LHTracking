@@ -332,7 +332,7 @@ public:
                     if (trackObject->state_track == TRACKSTATE_INITIAL)
                         distance_threshold = param.distance_threshold_ * 1.5;
                     if (match_distance[0] < distance_threshold) {
-
+                        LOG(INFO)<<match_distance[1];
 //                        LOG(INFO) << "feature_distance: " << match_distance[1];
                         trackobject_matched[distanceUnit.i] = true;
                         detectobject_matched[distanceUnit.j] = true;
@@ -407,6 +407,8 @@ private:
                 track_object->velocity.y * change_rate * frame_interval);
 
         Rect vt_location = last_detect_object->location;
+        vt_location.x += (1 - change_rate) * vt_location.width / 2;
+        vt_location.y += (1 - change_rate) * vt_location.height / 2;
         vt_location.height = vt_location.height * change_rate;
         vt_location.width = vt_location.width * change_rate;
         vt_location = rect_move(vt_location, diff_x, diff_y);
@@ -421,6 +423,8 @@ private:
 
 
         float iou_distance = 1.0f - iou(vt_location, dt_location);
+
+
 
         float frame_distance = frame_interval <= param.kMaxFrameIntervalKeep ? (frame_interval - 1) * 0.015f : 10;
         float max_unit = std::max(
@@ -455,7 +459,8 @@ private:
 
 class LHTracker : public Tracker {
 public:
-    LHTracker(TrackStrategyParam &mparam) {
+
+    explicit LHTracker(TrackStrategyParam &mparam) {
         trackSystem = new TrackSystem();
         trackStrategy = new TrackStrategy(trackSystem, mparam);
     }
