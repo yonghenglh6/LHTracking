@@ -498,43 +498,40 @@ public:
         }
         return box.height * box.height;
     }
-
-    void Update(DG_DETECT_FRAME_RESULT_S &detect_frame_result, const bool &is_key_frame,
-                std::vector<DG_TRACK_FRAME_RESULT_S> &track_frame_result_set,
-                std::vector<DG_U64> &finished_track_ids) {
+    virtual void Update(const cv::Mat &img, const unsigned long &frm_id,
+                        const bool &is_key_frame, const std::vector<cv::Rect> &det_box,
+                        const std::vector<unsigned char> &det_type, TrackingResult &result,
+                        std::vector<unsigned long> &kill_id,std::vector<float> &det_score) {
         if (is_key_frame) {
 
             vector<DetectObject *> detectobject_set;
-            for (int i = 0; i < detect_frame_result.trackObjects.size(); i++) {
-                DG_DETECT_OBJECT_S &dg_detect_object = detect_frame_result.trackObjects[i];
+            for (int i = 0; i < det_box.size(); i++) {
                 auto *detectObject = new DetectObject();
                 detectObject->det_id = i;
-                detectObject->type = dg_detect_object.type;
-                detectObject->location = cv::Rect(dg_detect_object.location.u32X, dg_detect_object.location.u32Y,
-                                                  dg_detect_object.location.u32Width,
-                                                  dg_detect_object.location.u32Height);
-                detectObject->frame_index = detect_frame_result.frameId;
-                detectObject->det_score = dg_detect_object.score;
+                detectObject->type = det_type[i];
+                detectObject->location = det_box[i];
+                detectObject->frame_index = frm_id;
+                detectObject->det_score = det_score.size()>i?det_score[i]:1.0f;
                 detectobject_set.push_back(detectObject);
             }
-            trackStrategy->Update(detectobject_set, finished_track_ids);
+            trackStrategy->Update(detectobject_set, kill_id);
 
-            track_frame_result_set.clear();
+            result.clear();
             vector<TrackObject *> aliveTrackObjects = trackSystem->getALiveTrackObjects();
             vector<TrackObject *> to_be_returned;
             for (int i = 0; i < aliveTrackObjects.size(); i++) {
                 TrackObject *trackObject = aliveTrackObjects[i];
-                if (trackObject->getLastDetectObject()->frame_index == detect_frame_result.frameId) {
+                if (trackObject->getLastDetectObject()->frame_index == frm_id) {
                     to_be_returned.push_back(trackObject);
                 }
             }
             if (isFirstFrame)
-                last_key_frame_index = detect_frame_result.frameId - 1;
-            int frame_interval = detect_frame_result.frameId - last_key_frame_index;
+                last_key_frame_index = frm_id - 1;
+            int frame_interval = frm_id - last_key_frame_index;
             for (long frame_index = last_key_frame_index + 1;
-                 frame_index <= detect_frame_result.frameId; frame_index++) {
-                DG_TRACK_FRAME_RESULT_S frameResult;
-                frameResult.frameId = frame_index;
+                 frame_index <= frm_id; frame_index++) {
+                FrameResult frameResult;
+                frameResult.frm_id = frame_index;
                 float radio_rfirst = (frame_index - last_key_frame_index) * 1.0 / frame_interval;
                 float radio_rsecond = 1.0 - radio_rfirst;
                 for (int i = 0; i < to_be_returned.size(); i++) {
@@ -545,56 +542,56 @@ public:
                                                                                     2]->detect_object;
                         DetectObject *rfirstDetectObject = trackObject->match_list[match_list_size -
                                                                                    1]->detect_object;
-                        DG_TRACK_OBJECT_S objResult;
+                        ObjResult objResult;
                         objResult.type = (unsigned char) rfirstDetectObject->type;
-                        objResult.trackId = trackObject->trk_id;
+                        objResult.obj_id = trackObject->trk_id;
                         objResult.score = trackObject->getLastDetectObject()->det_score;
-                        objResult.location.u32X = (unsigned int) (rfirstDetectObject->location.x * radio_rfirst +
+                        objResult.loc.x = (unsigned int) (rfirstDetectObject->location.x * radio_rfirst +
                                                                   rsecondDetectObject->location.x * radio_rsecond);
-                        objResult.location.u32Y = (unsigned int) (rfirstDetectObject->location.y * radio_rfirst +
+                        objResult.loc.y = (unsigned int) (rfirstDetectObject->location.y * radio_rfirst +
                                                                   rsecondDetectObject->location.y * radio_rsecond);
-                        objResult.location.u32Width = (unsigned int) (
+                        objResult.loc.width = (unsigned int) (
                                 rfirstDetectObject->location.width * radio_rfirst +
                                 rsecondDetectObject->location.width * radio_rsecond);
-                        objResult.location.u32Height = (unsigned int) (
+                        objResult.loc.height = (unsigned int) (
                                 rfirstDetectObject->location.height * radio_rfirst +
                                 rsecondDetectObject->location.height *
                                 radio_rsecond);
                         MatchPacket *matchPacket = trackObject->getLastMatchPacket();
                         float speed = matchPacket->speed;
-                        objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_MED;
+                        objResult.sl = SpeedLevel::MED_SPEED;
                         if (speed > 5)
-                            objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_FAST;
+                            objResult.sl = SpeedLevel::FAST_SPEED;
                         else if (speed < 1)
-                            objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_SLOW;
-                        objResult.direction.leftRight = matchPacket->direction.x;
-                        objResult.direction.upDown = matchPacket->direction.y;
-                        if (frame_index == detect_frame_result.frameId)
-                            objResult.matchDistance = trackObject->getLastMatchPacket()->match_distance;
-                        frameResult.trackObjects.push_back(objResult);
+                            objResult.sl = SpeedLevel::SLOW_SPEED;
+                        objResult.dir.left_right_dir = short(matchPacket->direction.x);
+                        objResult.dir.up_down_dir = short(matchPacket->direction.y);
+                        if (frame_index == frm_id)
+                            objResult.match_distance = trackObject->getLastMatchPacket()->match_distance;
+                        frameResult.obj.push_back(objResult);
 
-                    } else if (match_list_size == 1 && frame_index == detect_frame_result.frameId) {
+                    } else if (match_list_size == 1 && frame_index == frm_id) {
                         DetectObject *rfirstDetectObject = trackObject->match_list[match_list_size -
                                                                                    1]->detect_object;
-                        DG_TRACK_OBJECT_S objResult;
+                        ObjResult objResult;
                         objResult.type = (unsigned char) rfirstDetectObject->type;
-                        objResult.trackId = trackObject->trk_id;
+                        objResult.obj_id = trackObject->trk_id;
                         objResult.score = trackObject->getLastDetectObject()->det_score;
-                        objResult.location.u32X = (unsigned int) (rfirstDetectObject->location.x);
-                        objResult.location.u32Y = (unsigned int) (rfirstDetectObject->location.y);
-                        objResult.location.u32Width = (unsigned int) (rfirstDetectObject->location.width);
-                        objResult.location.u32Height = (unsigned int) (rfirstDetectObject->location.height);
-                        objResult.speed = DG_TRACK_SPEED_E::DG_TRACK_SPEED_UNKNOWN;
-                        objResult.direction.leftRight = 0;
-                        objResult.direction.upDown = 0;
-                        frameResult.trackObjects.push_back(objResult);
+                        objResult.loc.x = (unsigned int) (rfirstDetectObject->location.x);
+                        objResult.loc.y = (unsigned int) (rfirstDetectObject->location.y);
+                        objResult.loc.width = (unsigned int) (rfirstDetectObject->location.width);
+                        objResult.loc.height = (unsigned int) (rfirstDetectObject->location.height);
+                        objResult.sl = SpeedLevel::UNKNOWN_SPEED;
+                        objResult.dir.left_right_dir = 0;
+                        objResult.dir.up_down_dir = 0;
+                        frameResult.obj.push_back(objResult);
                     }
                 }
-                track_frame_result_set.push_back(frameResult);
+                result.push_back(frameResult);
             }
 
             isFirstFrame = false;
-            last_key_frame_index = detect_frame_result.frameId;
+            last_key_frame_index = frm_id;
         }
     }
 
