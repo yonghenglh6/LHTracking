@@ -24,12 +24,12 @@ const unsigned char LabelColors[][3] = {{251, 144, 17},
                                         {0,   78,  255}};
 
 int main(int argn, char **arg) {
-    string dataset_name("shenwang_2");
+    string dataset_name("n1");
     bool read_image = true;
     bool display = true;
-    bool skip_show = false;
-    int show_time=1;
-    int fps = 5;
+    bool skip_show = true;
+    int show_time=0;
+    int fps = 15;
 
 
     if (argn > 1)
@@ -67,7 +67,7 @@ int main(int argn, char **arg) {
 
     std::deque<Mat> all_imgs;
 
-    Tracker *tracker = createTracker(DG_TRACK_SCENE_E::DG_TRACK_SCENE_FACE, 1920, 1080);
+    Tracker *tracker = createTracker(DG_TRACK_SCENE_E::DG_TRACK_SCENE_VEHICLE, 1920, 1080);
     Mat frame;
     int frame_index = skip_frames;
     bool stop = false;
@@ -146,7 +146,7 @@ int main(int argn, char **arg) {
 //                                    match_distance[5], match_distance[6], match_distance[7]);
 
                             Rect vtbox(match_distance[8], match_distance[9], match_distance[10], match_distance[11]);
-//                            rectangle(all_imgs[0], vtbox, mcolor, 3, 8, 0);
+                            rectangle(all_imgs[0], vtbox, mcolor, 3, 8, 0);
                         } else {
                             sprintf(tmp_char, "%lu",
                                     track_object.trackId);
