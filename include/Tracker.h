@@ -2,9 +2,8 @@
 // Created by 闫梓祯 on 07/04/2017. Edit by liuhao.
 //
 
-#ifndef VSD_TRACKER_H
-#define VSD_TRACKER_H
-#define STC_TRACKER
+#ifndef TRACKER_H
+#define TRACKER_H
 
 #include <sys/time.h>
 #include <stdio.h>
@@ -72,4 +71,4 @@ public:
 };
 
 
-#endif //VSD_TRACKER_H
+#endif

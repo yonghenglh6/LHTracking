@@ -332,7 +332,7 @@ public:
                     if (trackObject->state_track == TRACKSTATE_INITIAL)
                         distance_threshold = param.distance_threshold_ * 1.5;
                     if (match_distance[0] < distance_threshold) {
-                        LOG(INFO)<<match_distance[1];
+//                        LOG(INFO)<<match_distance[1];
 //                        LOG(INFO) << "feature_distance: " << match_distance[1];
                         trackobject_matched[distanceUnit.i] = true;
                         detectobject_matched[distanceUnit.j] = true;

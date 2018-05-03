@@ -15,6 +15,7 @@
 #include <deque>
 
 using namespace std;
+
 using namespace cv;
 
 const unsigned char LabelColors[][3] = {{251, 144, 17},
@@ -24,16 +25,19 @@ const unsigned char LabelColors[][3] = {{251, 144, 17},
                                         {0,   78,  255}};
 
 int main(int argn, char **arg) {
-    string dataset_name("n6 ");
+    string dataset_name("beijing");
     bool read_image = true;
     bool display = true;
     bool skip_show = true;
-    int show_time = 0;
-    int fps = 15;
+    int show_time = 1;
+    int fps = 6;
 
-
+    std::string prefix_directory = "";
     if (argn > 1)
         dataset_name = string(arg[1]);
+    if (argn > 2)
+        prefix_directory = string(arg[2]);
+
     string base_dir("/home/liuhao/workspace/1_dgvehicle/LHTracking/");
 
     string detectresult_file = base_dir + "data/detect_" + dataset_name;
@@ -45,7 +49,8 @@ int main(int argn, char **arg) {
 
 
     string imagelist_file = base_dir + "data/" + dataset_name + ".list";
-    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);
+    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames,
+                                                                              prefix_directory);
 
 //    string video_file=base_dir + "data/" + dataset_name + ".mp4";
 //    dataloader::DataReader *data_reader = new dataloader::VideoDataReader(video_file,skip_frames);
@@ -67,7 +72,7 @@ int main(int argn, char **arg) {
 
     std::deque<Mat> all_imgs;
 
-    Tracker *tracker = Tracker::createVSDTracker(DG_TRACK_SCENE_E::DG_TRACK_SCENE_VEHICLE, 1920, 1080);
+    Tracker *tracker = Tracker::createVSDTracker(DG_TRACK_SCENE_E::DG_TRACK_SCENE_FACE, 1920, 1080);
     Mat frame;
     int frame_index = skip_frames;
     bool stop = false;
@@ -85,7 +90,7 @@ int main(int argn, char **arg) {
             if (frame_index >= data_reader->getTotalFrames())
                 frame_index = -2;
         }
-//        LOG(INFO) << frame_index << endl;
+        LOG(INFO)<<"frame_index: " << frame_index << endl;
         if (frame_index == -1) {
             LOG(FATAL) << "Error: can not read frames.\n";
             break;
@@ -140,7 +145,7 @@ int main(int argn, char **arg) {
                 if (!skip_show || ((result_frame.frm_id - 1) % fps == 0)) {
                     char tmp_char[512];
                     for (auto track_object: result_frame.obj) {
-                        unsigned long trackid=track_object.obj_id;
+                        unsigned long trackid = track_object.obj_id;
 
                         Scalar mcolor(trackid * 997 % 255, trackid * 4447 % 255,
                                       trackid * 6563 % 255);
@@ -159,7 +164,7 @@ int main(int argn, char **arg) {
 //                                    match_distance[5], match_distance[6], match_distance[7]);
 
                             Rect vtbox(match_distance[8], match_distance[9], match_distance[10], match_distance[11]);
-                            rectangle(all_imgs[0], vtbox, mcolor, 3, 8, 0);
+//                            rectangle(all_imgs[0], vtbox, mcolor, 3, 8, 0);
                         } else {
                             sprintf(tmp_char, "%lu",
                                     trackid);

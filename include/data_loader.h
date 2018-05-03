@@ -88,11 +88,12 @@ namespace dataloader {
 
     class ImagelistDataReader : public DataReader {
     public:
-        ImagelistDataReader(std::string listfile, int SKIPED_FRAME = 0) {
+        ImagelistDataReader(std::string listfile, int SKIPED_FRAME = 0,std::string prefix_directory_="") {
             read_labeled_imagelist(listfile.c_str(), imagenames);
             tot_frm_num = imagenames.size();
             index_frame = SKIPED_FRAME;
             openned = true;
+            prefix_directory=prefix_directory_;
         }
 
         void read_labeled_imagelist(const char *filename,
@@ -118,9 +119,11 @@ namespace dataloader {
         virtual int readNextImage(cv::Mat &mat, int next) {
             if (index_frame >= tot_frm_num)
                 return -2;
-            mat = cv::imread(imagenames[index_frame]);
-            if (mat.cols <= 0)
+            mat = cv::imread(prefix_directory+"/"+imagenames[index_frame]);
+            if (mat.cols <= 0) {
+                LOG(ERROR)<<"Image file is not legal: "<<prefix_directory+"/"+imagenames[index_frame];
                 return -1;
+            }
             index_frame += next;
             return index_frame - next;
         }
@@ -135,6 +138,7 @@ namespace dataloader {
         std::vector<std::string> imagenames;
         int index_frame;
         unsigned long tot_frm_num;
+        std::string prefix_directory;
         bool openned = false;
     };
 
@@ -162,7 +166,7 @@ namespace dataloader {
                                std::map<int, std::vector<DetectObject> > &detect_result) {
         std::ifstream in(filename.c_str());
         if (!in)
-            LOG(FATAL) << "Detection result can not be read." << std::endl;
+            LOG(FATAL) << "Detection result can not be read: "<<filename;
         while (!in.eof()) {
             int frameId, objectNum;
             in >> frameId >> objectNum;
