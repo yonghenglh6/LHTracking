@@ -25,12 +25,12 @@ const unsigned char LabelColors[][3] = {{251, 144, 17},
                                         {0,   78,  255}};
 
 int main(int argn, char **arg) {
-    string dataset_name("beijing");
+    string dataset_name("beijing_face");
     bool read_image = true;
     bool display = true;
     bool skip_show = true;
-    int show_time = 1;
-    int fps = 6;
+    int show_time = 0;
+    int fps = 15;
 
     std::string prefix_directory = "";
     if (argn > 1)
@@ -42,7 +42,7 @@ int main(int argn, char **arg) {
 
     string detectresult_file = base_dir + "data/detect_" + dataset_name;
 
-    int skip_frames = 0;
+    int skip_frames = 3500;
 
     skip_frames = int(skip_frames / fps) * fps + 1;
     LOG(INFO) << "SKIP FRAME: " << skip_frames;
@@ -157,14 +157,14 @@ int main(int argn, char **arg) {
 
                         vector<float> &match_distance = track_object.match_distance;
                         if (match_distance.size() > 4) {
-                            sprintf(tmp_char, "%lu", trackid);
-//                            sprintf(tmp_char, "%lu [%.1f] %.1f %.1f %.1f %.1f %.1f %.1f id %.1f",
-//                                    track_object.trackId, match_distance[0],
-//                                    match_distance[1], match_distance[2], match_distance[3], match_distance[4],
-//                                    match_distance[5], match_distance[6], match_distance[7]);
+//                            sprintf(tmp_char, "%lu  %d  %d", trackid,track_object.dir.left_right_dir,track_object.dir.up_down_dir);
+                            sprintf(tmp_char, "%lu [%.1f] %.1f %.1f %.1f %.1f %.1f %.1f id %.1f",
+                                    track_object.obj_id, match_distance[0],
+                                    match_distance[1], match_distance[2], match_distance[3], match_distance[4],
+                                    match_distance[5], match_distance[6], match_distance[7]);
 
                             Rect vtbox(match_distance[8], match_distance[9], match_distance[10], match_distance[11]);
-//                            rectangle(all_imgs[0], vtbox, mcolor, 3, 8, 0);
+                            rectangle(all_imgs[0], vtbox, mcolor, 3, 8, 0);
                         } else {
                             sprintf(tmp_char, "%lu",
                                     trackid);
