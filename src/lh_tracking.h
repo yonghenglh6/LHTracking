@@ -243,7 +243,7 @@ public:
         param.picture_width_ = picture_width;
         param.picture_height_ = picture_height;
 
-        param.distance_threshold_ = 2.0;
+        param.distance_threshold_ = 2.8;
 
         param.iou_weight_ = 1.0;
         param.frame_weight_ = 1.5;
@@ -252,7 +252,7 @@ public:
         param.feature_weight_ = 1.0;
         param.type_weight_ = 1.0;
 
-        param.kMaxFrameIntervalKeep = 15;
+        param.kMaxFrameIntervalKeep = 25;
         param.kBoardToDrop = 10;
         return param;
     }
@@ -289,13 +289,13 @@ public:
         param.picture_height_ = picture_height;
     }
 
-    void Update(vector<DetectObject *> &detectobject_set, vector<unsigned long> &kill_id) {
+    void Update(vector<DetectObject *> &detectobject_set, vector<unsigned long> &kill_id,unsigned long current_frame_index) {
         // get frame id
-        unsigned long current_frame_index = 0;
+//        unsigned long current_frame_index = 0;
         auto trackobject_set = track_system_->getALiveTrackObjects();
         if (detectobject_set.size() > 0) {
 //            return;
-            current_frame_index = detectobject_set[0]->frame_index;
+//            current_frame_index = detectobject_set[0]->frame_index;
 
 //        for(DetectObject* detectObject : detectobject_set){
 //            detectobject_set->inb
@@ -517,7 +517,7 @@ public:
                 detectObject->det_score = dg_detect_object.score;
                 detectobject_set.push_back(detectObject);
             }
-            trackStrategy->Update(detectobject_set, finished_track_ids);
+            trackStrategy->Update(detectobject_set, finished_track_ids,detect_frame_result.frameId);
 
             track_frame_result_set.clear();
             vector<TrackObject *> aliveTrackObjects = trackSystem->getALiveTrackObjects();
