@@ -88,11 +88,13 @@ namespace dataloader {
 
     class ImagelistDataReader : public DataReader {
     public:
-        ImagelistDataReader(std::string listfile, int SKIPED_FRAME = 0) {
+        ImagelistDataReader(std::string listfile, int SKIPED_FRAME = 0,std::string base_folder_="./") {
+            base_folder=base_folder_;
             read_labeled_imagelist(listfile.c_str(), imagenames);
             tot_frm_num = imagenames.size();
             index_frame = SKIPED_FRAME;
             openned = true;
+
         }
 
         void read_labeled_imagelist(const char *filename,
@@ -118,7 +120,8 @@ namespace dataloader {
         virtual int readNextImage(cv::Mat &mat, int next) {
             if (index_frame >= tot_frm_num)
                 return -2;
-            mat = cv::imread(imagenames[index_frame]);
+            mat = cv::imread(base_folder+"/"+imagenames[index_frame]);
+            CHECK(!mat.empty())<<"Cannot open the image: "+imagenames[index_frame];
             if (mat.cols <= 0)
                 return -1;
             index_frame += next;
@@ -136,6 +139,7 @@ namespace dataloader {
         int index_frame;
         unsigned long tot_frm_num;
         bool openned = false;
+        std::string base_folder;
     };
 
     typedef struct detect_object_t {
@@ -144,8 +148,14 @@ namespace dataloader {
         cv::Rect position;
 
         void readFrom(std::istream &in) {
-            in >> confidence >> typeID >> position.x >> position.y >> position.width
-               >> position.height;
+            float x,y,w,h;
+            in >> confidence >> typeID >> x >> y >> w
+               >> h;
+            position.x=int(x);
+            position.y=int(y);
+            position.width=int(w);
+            position.height=int(h);
+//            LOG(INFO)<<position.x;
 //            LOG(INFO) << " " << confidence << " " << typeID << " " << position.x << " " << position.y << " "
 //                      << position.width << " " << position.height << std::endl;
         }

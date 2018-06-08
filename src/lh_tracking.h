@@ -279,6 +279,7 @@ public:
 
 class TrackStrategy {
 public:
+    TrackStrategyParam param;
     explicit TrackStrategy(TrackSystem *track_system, TrackStrategyParam param_) {
         track_system_ = track_system;
         param = param_;
@@ -332,7 +333,7 @@ public:
                     if (trackObject->state_track == TRACKSTATE_INITIAL)
                         distance_threshold = param.distance_threshold_ * 1.5;
                     if (match_distance[0] < distance_threshold) {
-                        LOG(INFO)<<match_distance[1];
+//                        LOG(INFO)<<match_distance[1];
 //                        LOG(INFO) << "feature_distance: " << match_distance[1];
                         trackobject_matched[distanceUnit.i] = true;
                         detectobject_matched[distanceUnit.j] = true;
@@ -353,7 +354,9 @@ public:
         std::set<TrackObject *> to_detele;
         for (int i = 0; i < trackobject_set.size(); i++) {
             DetectObject *detectObject = trackobject_set[i]->getLastDetectObject();
-            int frame_interval = abs(current_frame_index - detectObject->frame_index);
+            int frame_interval = current_frame_index - detectObject->frame_index;
+            if(frame_interval<=0)
+                frame_interval=0;
             if (frame_interval > param.kMaxFrameIntervalKeep) {
                 to_detele.insert(trackobject_set[i]);
             } else if (inboard(detectObject->location)) {
@@ -445,12 +448,12 @@ private:
                    pos_weight * pos_distance + scale_weight * scale_distance + feature_weight * feature_distance
                    + type_weight * type_distance;
         return vector<float>{distance, iou_distance, frame_distance, pos_distance, scale_distance, feature_distance,
-                             type_distance, detect_object->det_id, vt_location.x, vt_location.y, vt_location.width,
-                             vt_location.height};
+                             type_distance, float(detect_object->det_id), float(vt_location.x), float(vt_location.y), float(vt_location.width),
+                                                                                                                          float(vt_location.height)};
     }
 
     TrackSystem *track_system_;
-    TrackStrategyParam param;
+
 //    int picture_width_, picture_height_;
 //    float distance_threshold_, iou_weight_, frame_weight_, pos_weight_, scale_weight_, feature_weight_, type_weight_;
 //    int kMaxFrameIntervalKeep, kBoardToDrop;
@@ -513,6 +516,8 @@ public:
                 detectObject->location = cv::Rect(dg_detect_object.location.u32X, dg_detect_object.location.u32Y,
                                                   dg_detect_object.location.u32Width,
                                                   dg_detect_object.location.u32Height);
+                keep_bound_legal(detectObject->location,trackStrategy->param.picture_width_,trackStrategy->param.picture_height_);
+//                LOG(INFO)<<detectObject->location.y;
                 detectObject->frame_index = detect_frame_result.frameId;
                 detectObject->det_score = dg_detect_object.score;
                 detectobject_set.push_back(detectObject);

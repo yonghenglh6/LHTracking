@@ -24,17 +24,17 @@ const unsigned char LabelColors[][3] = {{251, 144, 17},
                                         {0,   78,  255}};
 
 int main(int argn, char **arg) {
-    string dataset_name("n1");
-    bool read_image = true;
+    string dataset_name("4");
+    bool read_image = false;
     bool display = true;
     bool skip_show = true;
-    int show_time=0;
-    int fps = 15;
+    int show_time=10;
+    int fps = 4;
 
 
     if (argn > 1)
         dataset_name = string(arg[1]);
-    string base_dir("/home/liuhao/workspace/1_dgvehicle/LHTracking/");
+    string base_dir("/Users/liuhao/workspace/1_tracking/face_track/iou_tracking/liboxun/LHTracking/");
 
     string detectresult_file = base_dir + "data/detect_" + dataset_name;
 
@@ -43,9 +43,9 @@ int main(int argn, char **arg) {
     skip_frames = int(skip_frames / fps) * fps + 1;
     LOG(INFO) << "SKIP FRAME: " << skip_frames;
 
-
+    string image_base_folder=base_dir+"/"+"data/";
     string imagelist_file = base_dir + "data/" + dataset_name + ".list";
-    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames);
+    dataloader::DataReader *data_reader = new dataloader::ImagelistDataReader(imagelist_file, skip_frames,image_base_folder);
 
 //    string video_file=base_dir + "data/" + dataset_name + ".mp4";
 //    dataloader::DataReader *data_reader = new dataloader::VideoDataReader(video_file,skip_frames);
@@ -146,7 +146,7 @@ int main(int argn, char **arg) {
 //                                    match_distance[5], match_distance[6], match_distance[7]);
 
                             Rect vtbox(match_distance[8], match_distance[9], match_distance[10], match_distance[11]);
-                            rectangle(all_imgs[0], vtbox, mcolor, 3, 8, 0);
+//                            rectangle(all_imgs[0], vtbox, mcolor, 3, 8, 0);
                         } else {
                             sprintf(tmp_char, "%lu",
                                     track_object.trackId);
